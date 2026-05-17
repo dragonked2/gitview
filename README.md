@@ -108,6 +108,8 @@ python gitview.py
 | `Right-click` | Open context menu |
 
 ---
+<img width="1917" height="1013" alt="image" src="https://github.com/user-attachments/assets/182db4ce-32a2-4af8-a4bf-99d7b22dc600" />
+
 
 ## 🏗️ Architecture
 
