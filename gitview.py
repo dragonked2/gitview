@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║                         GitView  v3.0                                   ║
-║              Your Friendly GitHub Repository Explorer                   ║
+║                         GitView  v4.0                                   ║
+║              Premium GitHub Repository Explorer                         ║
 ║                                                                         ║
 ║  Author  : Ali Essam                                                    ║
 ║  Origin  : Egypt 🇪🇬                                                    ║
@@ -10,25 +10,25 @@
 ║  GitHub  : github.com/dragonked2/gitview                                ║
 ║  License : MIT                                                          ║
 ╠══════════════════════════════════════════════════════════════════════════╣
-║  What's NEW in v3.0 (vs v2.0)                                           ║
-║  ─────────────────────────────                                           ║
-║  ✓ Browse ANY public GitHub profile without a token (username / URL)    ║
-║  ✓ Search is now USER-SCOPED — searches within the loaded user only     ║
-║  ✓ Smart input parser — accepts github.com/user links OR bare usernames ║
-║  ✓ Welcome / onboarding panel for first-time users                      ║
-║  ✓ User-friendly error messages with step-by-step solutions             ║
-║  ✓ "Quick Browse" mode: paste any GitHub URL and Go                     ║
-║  ✓ Repo pinning — pin your favourite repos to the top                   ║
-║  ✓ File search across ALL repos of the loaded user                      ║
-║  ✓ Download-progress dialog with file counter and cancel support        ║
-║  ✓ Auto-retry on transient network errors (3 retries, exponential back) ║
-║  ✓ Config stores last username/mode so next launch is instant           ║
-║  ✓ Auth-bar redesigned: Token tab | Browse-Public tab                   ║
-║  ✓ All v2.0 features retained and polished                              ║
+║  What's NEW in v4.0                                                     ║
+║  ─────────────────────────────                                          ║
+║  ✓ COMPLETELY REDESIGNED UI — premium dark/light themes                 ║
+║  ✓ FIXED search — all scopes now work reliably                          ║
+║  ✓ NEW: Content search — find keywords INSIDE file contents             ║
+║  ✓ NEW: Rich result cards with highlighted keyword fragments            ║
+║  ✓ NEW: Search history (last 30 searches)                               ║
+║  ✓ NEW: Result pagination (20 per page)                                 ║
+║  ✓ NEW: Advanced search filters (language, repo, file type)             ║
+║  ✓ Fixed file search headers (text-match Accept header)                 ║
+║  ✓ Fixed: unauthenticated search with helpful guidance                  ║
+║  ✓ New: Search works for both token AND public browse mode              ║
+║  ✓ Improved: Keyword highlighting in result snippets                    ║
+║  ✓ Resizable split panes with PanedWindow                               ║
+║  ✓ Improved status bar with animations                                  ║
+║  ✓ Better error messages and recovery                                   ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
-# ── Suppress noisy library warnings ───────────────────────────────────────
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", message=r".*urllib3.*",            category=UserWarning)
@@ -61,46 +61,52 @@ from typing import Optional, Dict, List, Any, Tuple, Callable
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#   DESIGN SYSTEM  — Dark & Light palettes
+#   DESIGN SYSTEM  — Premium Dark & Light palettes
 # ══════════════════════════════════════════════════════════════════════════
 DARK: Dict[str, str] = {
-    "bg":              "#080d13",
+    "bg":              "#070b10",
     "surface":         "#0d1117",
     "surface2":        "#161b22",
     "surface3":        "#1c2431",
+    "card":            "#111820",
     "border":          "#21262d",
     "border_bright":   "#30363d",
     "fg":              "#e6edf3",
     "fg_muted":        "#8b949e",
     "fg_subtle":       "#484f58",
-    "accent":          "#2f81f7",
-    "accent_hover":    "#58a6ff",
-    "accent_subtle":   "#0d1f3c",
+    "accent":          "#1f6feb",
+    "accent_hover":    "#388bfd",
+    "accent_subtle":   "#0c2d6b",
     "accent_glow":     "#163359",
     "success":         "#3fb950",
     "success_subtle":  "#0a2213",
-    "warning":         "#d29922",
-    "warning_subtle":  "#2a1f00",
+    "warning":         "#e3b341",
+    "warning_subtle":  "#272115",
     "danger":          "#f85149",
     "danger_subtle":   "#300a0a",
     "purple":          "#bc8cff",
-    "cyan":            "#39c5cf",
+    "purple_subtle":   "#1e1340",
+    "cyan":            "#39d0d8",
+    "cyan_subtle":     "#0c2e31",
     "orange":          "#f0883e",
     "pink":            "#ff7b72",
     "tree_select":     "#0d2645",
-    "entry_bg":        "#0d1117",
+    "entry_bg":        "#010409",
+    "entry_border":    "#30363d",
     "tag_dir":         "#58a6ff",
     "tag_file":        "#e6edf3",
-    "title_bar":       "#06090e",
-    "status_bar":      "#06090e",
+    "title_bar":       "#040811",
+    "status_bar":      "#040811",
     "scrollbar":       "#21262d",
     "scrollbar_hover": "#30363d",
     "rate_ok":         "#3fb950",
-    "rate_warn":       "#d29922",
+    "rate_warn":       "#e3b341",
     "rate_low":        "#f85149",
     "badge_token":     "#1a7f37",
     "badge_public":    "#9a3412",
-    # Syntax highlight
+    "highlight_bg":    "#2d3b1a",
+    "highlight_fg":    "#7ee787",
+    # Syntax
     "syn_kw":          "#ff7b72",
     "syn_str":         "#a5d6ff",
     "syn_cmt":         "#6e7681",
@@ -111,10 +117,11 @@ DARK: Dict[str, str] = {
 }
 
 LIGHT: Dict[str, str] = {
-    "bg":              "#f6f8fa",
+    "bg":              "#f0f2f5",
     "surface":         "#ffffff",
-    "surface2":        "#f0f2f5",
-    "surface3":        "#e8ecf0",
+    "surface2":        "#f6f8fa",
+    "surface3":        "#eaeef2",
+    "card":            "#fafbfc",
     "border":          "#d0d7de",
     "border_bright":   "#b0bac4",
     "fg":              "#1f2328",
@@ -122,7 +129,7 @@ LIGHT: Dict[str, str] = {
     "fg_subtle":       "#9ea8b3",
     "accent":          "#0969da",
     "accent_hover":    "#0550ae",
-    "accent_subtle":   "#e6f0fd",
+    "accent_subtle":   "#dbeafe",
     "accent_glow":     "#cce5ff",
     "success":         "#1a7f37",
     "success_subtle":  "#d1f8dc",
@@ -131,11 +138,14 @@ LIGHT: Dict[str, str] = {
     "danger":          "#cf222e",
     "danger_subtle":   "#ffebe9",
     "purple":          "#8250df",
+    "purple_subtle":   "#f3f0ff",
     "cyan":            "#0969da",
+    "cyan_subtle":     "#ddf4ff",
     "orange":          "#bc4c00",
     "pink":            "#a40e26",
     "tree_select":     "#dbeafe",
     "entry_bg":        "#ffffff",
+    "entry_border":    "#d0d7de",
     "tag_dir":         "#0969da",
     "tag_file":        "#1f2328",
     "title_bar":       "#ffffff",
@@ -147,6 +157,8 @@ LIGHT: Dict[str, str] = {
     "rate_low":        "#cf222e",
     "badge_token":     "#1a7f37",
     "badge_public":    "#9a3412",
+    "highlight_bg":    "#fff8c5",
+    "highlight_fg":    "#9a6700",
     "syn_kw":          "#cf222e",
     "syn_str":         "#0550ae",
     "syn_cmt":         "#6e7781",
@@ -157,16 +169,17 @@ LIGHT: Dict[str, str] = {
 }
 
 FONT_UI    = "Segoe UI"
-FONT_MONO  = "Consolas"
+FONT_MONO  = "Cascadia Code" if os.name == "nt" else "Menlo"
 FONT_TITLE = "Segoe UI Semibold"
 
-APP_VERSION   = "3.0.0"
+APP_VERSION   = "4.0.0"
 AUTHOR_NAME   = "Ali Essam"
 AUTHOR_FROM   = "Egypt 🇪🇬"
 AUTHOR_LI     = "linkedin.com/in/dragonked2"
 AUTHOR_LI_URL = "https://www.linkedin.com/in/dragonked2"
 GITHUB_URL    = "https://github.com/dragonked2/gitview"
 CONFIG_FILE   = Path.home() / ".gitview_config.json"
+RESULTS_PER_PAGE = 20
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -198,26 +211,15 @@ def relative_time(iso: str) -> str:
 
 
 def parse_github_input(text: str) -> Optional[str]:
-    """Return bare username from a GitHub URL or username string.
-    Accepts:
-      - dragonked2
-      - github.com/dragonked2
-      - https://github.com/dragonked2
-      - https://github.com/dragonked2/some-repo  (returns dragonked2)
-    Returns None if the input looks invalid.
-    """
     text = text.strip().rstrip("/")
     if not text:
         return None
-    # Strip scheme and host
     text = re.sub(r"^https?://", "", text)
     text = re.sub(r"^(www\.)?github\.com/?", "", text)
-    # First path component = username
     parts = [p for p in text.split("/") if p]
     if not parts:
         return None
     username = parts[0]
-    # Basic validation: GitHub usernames are alphanumeric + hyphens, 1-39 chars
     if re.match(r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,37}[a-zA-Z0-9])?$", username):
         return username
     return None
@@ -265,6 +267,20 @@ def lang_from_name(name: str) -> str:
         "php":"php","swift":"swift","kt":"kotlin","sql":"sql",
         "md":"markdown","yaml":"yaml","yml":"yaml","toml":"toml",
     }.get(ext, "text")
+
+
+def score_match(query: str, text: str) -> int:
+    """Score how well a query matches text. Higher = better match."""
+    q = query.lower()
+    t = text.lower()
+    if t == q:                  return 100
+    if t.startswith(q):         return 80
+    if q in t.split():          return 70
+    if t.endswith(q):           return 60
+    if q in t:                  return 50
+    # fuzzy: count matching chars
+    matches = sum(1 for c in q if c in t)
+    return int((matches / max(len(q), 1)) * 30)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -400,9 +416,10 @@ class SyntaxHighlighter:
 class Tooltip:
     DELAY = 500
 
-    def __init__(self, widget: tk.Widget, text: str):
+    def __init__(self, widget: tk.Widget, text: str, C: Optional[Dict] = None):
         self.widget    = widget
         self.text      = text
+        self.C         = C or DARK
         self.tip: Optional[tk.Toplevel] = None
         self._after_id: Optional[str]   = None
         widget.bind("<Enter>",   self._schedule, add="+")
@@ -416,16 +433,18 @@ class Tooltip:
     def _show(self):
         if not self.widget.winfo_exists():
             return
-        x = self.widget.winfo_rootx() + 24
-        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 6
+        x = self.widget.winfo_rootx() + 16
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4
         self.tip = tk.Toplevel(self.widget)
         self.tip.wm_overrideredirect(True)
         self.tip.wm_geometry(f"+{x}+{y}")
         self.tip.wm_attributes("-topmost", True)
-        tk.Label(self.tip, text=self.text,
-                 bg="#1c2128", fg="#e6edf3",
-                 font=(FONT_UI, 8), relief="solid", bd=1,
-                 padx=10, pady=5).pack()
+        C = self.C
+        outer = tk.Frame(self.tip, bg=C.get("border_bright","#30363d"), padx=1, pady=1)
+        outer.pack()
+        tk.Label(outer, text=self.text,
+                 bg=C.get("surface3","#1c2431"), fg=C.get("fg","#e6edf3"),
+                 font=(FONT_UI, 8), padx=10, pady=5).pack()
 
     def _cancel(self, _=None):
         if self._after_id:
@@ -452,17 +471,19 @@ def make_btn(parent, text, cmd, style="default", C=None, **kw) -> tk.Button:
         "default": dict(bg=C["surface2"],  fg=C["fg"],
                         activebackground=C["border_bright"], activeforeground=C["fg"]),
         "accent":  dict(bg=C["accent"],    fg="#ffffff",
-                        activebackground=C["accent_hover"], activeforeground="#ffffff"),
+                        activebackground=C["accent_hover"],  activeforeground="#ffffff"),
         "danger":  dict(bg=C["danger"],    fg="#ffffff",
-                        activebackground="#ff6961",          activeforeground="#ffffff"),
+                        activebackground="#ff6961",           activeforeground="#ffffff"),
         "success": dict(bg=C["success"],   fg="#ffffff",
-                        activebackground="#56d364",          activeforeground="#ffffff"),
+                        activebackground="#56d364",           activeforeground="#ffffff"),
         "ghost":   dict(bg=C["surface"],   fg=C["fg_muted"],
-                        activebackground=C["surface2"],      activeforeground=C["fg"]),
+                        activebackground=C["surface2"],       activeforeground=C["fg"]),
         "warning": dict(bg=C["warning"],   fg="#000000",
-                        activebackground="#e3aa2a",          activeforeground="#000000"),
+                        activebackground="#f0c040",           activeforeground="#000000"),
         "purple":  dict(bg=C["purple"],    fg="#ffffff",
-                        activebackground="#d2a8ff",          activeforeground="#000000"),
+                        activebackground="#d2a8ff",           activeforeground="#000000"),
+        "ghost2":  dict(bg=C["surface2"],  fg=C["fg_muted"],
+                        activebackground=C["surface3"],       activeforeground=C["fg"]),
     }
     s    = styles.get(style, styles["default"])
     font = kw.pop("font", (FONT_UI, 9))
@@ -473,8 +494,8 @@ def make_btn(parent, text, cmd, style="default", C=None, **kw) -> tk.Button:
                      padx=padx, pady=pady, bd=0,
                      highlightthickness=0, **s, **kw)
 
-    def on_enter(_): btn.config(bg=s["activebackground"])
-    def on_leave(_): btn.config(bg=s["bg"])
+    def on_enter(_): btn.config(bg=s["activebackground"], fg=s["activeforeground"])
+    def on_leave(_): btn.config(bg=s["bg"],               fg=s["fg"])
 
     btn.bind("<Enter>", on_enter)
     btn.bind("<Leave>", on_leave)
@@ -491,9 +512,9 @@ def resilient_get(session: requests.Session, url: str,
     last_exc: Optional[Exception] = None
     for attempt in range(max_retries):
         try:
-            r = session.get(url, params=params, headers=headers or {},
+            merged_headers = dict(headers or {})
+            r = session.get(url, params=params, headers=merged_headers,
                             timeout=timeout)
-            # Only retry on 5xx or 429 (rate limit)
             if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
                 wait = 2 ** attempt
                 time.sleep(wait)
@@ -504,66 +525,80 @@ def resilient_get(session: requests.Session, url: str,
             last_exc = e
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
-    raise last_exc or RuntimeError("Request failed")
+    raise last_exc or RuntimeError("Request failed after retries")
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#   MAIN APPLICATION
+#   HORIZONTAL DIVIDER helper
+# ══════════════════════════════════════════════════════════════════════════
+def hdiv(parent, C, pady=0):
+    tk.Frame(parent, bg=C["border"], height=1).pack(fill=tk.X, pady=pady)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#   SECTION LABEL helper
+# ══════════════════════════════════════════════════════════════════════════
+def section_lbl(parent, text, C):
+    return tk.Label(parent, text=text,
+                    bg=C["surface"], fg=C["fg_subtle"],
+                    font=(FONT_UI, 7, "bold"))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#   MAIN APPLICATION CLASS
 # ══════════════════════════════════════════════════════════════════════════
 class GitView:
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("GitView v3 — GitHub Explorer for Everyone")
-        self.root.geometry("1440x880")
+        self.root.title("GitView v4 — Premium GitHub Explorer")
+        self.root.geometry("1520x900")
         self.root.minsize(1100, 640)
 
-        # HTTP session (connection pooling, auto-headers)
         self.session = requests.Session()
         self.session.headers.update({
             "Accept":     "application/vnd.github.v3+json",
             "User-Agent": f"GitView/{APP_VERSION}",
         })
 
-        # ── Core state ───────────────────────────────────────────────
-        self.api_base           = "https://api.github.com"
-        self.token: Optional[str]      = None
-        self.username: Optional[str]   = None
-        self.auth_mode: str            = "token"    # "token" | "public"
-        self.current_repo: Optional[str]      = None
+        # ── Core state ─────────────────────────────────────────────
+        self.api_base                       = "https://api.github.com"
+        self.token: Optional[str]          = None
+        self.username: Optional[str]       = None
+        self.auth_mode: str                = "token"
+        self.current_repo: Optional[str]   = None
         self.current_repo_full: Optional[str] = None
-        self.current_path: str         = ""
-        self.current_branch: str       = "main"
-        self.repo_data: Dict[str, Any] = {}
-        self.all_items: Dict[str, List]= {"dirs": [], "files": []}
-        self.current_theme: str        = "dark"
-        self.C: Dict[str, str]         = DARK
-        self.pinned_repos: List[str]   = []
+        self.current_path: str             = ""
+        self.current_branch: str           = "main"
+        self.repo_data: Dict[str, Any]     = {}
+        self.all_items: Dict[str, List]    = {"dirs": [], "files": []}
+        self.current_theme: str            = "dark"
+        self.C: Dict[str, str]             = DARK
+        self.pinned_repos: List[str]       = []
 
-        # Sort state
         self.sort_col     = "name"
         self.sort_reverse = False
 
-        # Rate-limit counters
-        self.rate_remaining = 60        # unauthenticated default
+        self.rate_remaining = 60
         self.rate_limit     = 60
         self.rate_reset_ts  = 0.0
 
-        # History
         self.recent_repos: deque = deque(maxlen=20)
         self.op_log: List[str]   = []
 
         # Search state
         self.search_thread: Optional[threading.Thread] = None
         self.search_cancel = threading.Event()
-        self._user_search_index: List[Dict] = []   # flat list of all repo-file meta
-        self._user_search_built = False
+        self._search_history: deque = deque(maxlen=30)
+        self._search_results_all: List[Dict] = []
+        self._search_page: int = 1
+        self._search_scope: str = "Repos"
 
-        # Misc
         self.show_tok    = False
         self._preview_windows: List[tk.Toplevel] = []
+        self._commits_data: Dict[str, Any] = {}
+        self._filter_entry_ref: Optional[tk.Entry] = None
 
-        # Build everything
         self._apply_styles()
         self._build_ui()
         self._add_keyboard_shortcuts()
@@ -580,22 +615,22 @@ class GitView:
         s.configure("Treeview",
                     background=C["surface"], foreground=C["fg"],
                     fieldbackground=C["surface"],
-                    rowheight=32, font=(FONT_UI, 10),
+                    rowheight=34, font=(FONT_UI, 10),
                     borderwidth=0, relief="flat")
         s.configure("Treeview.Heading",
                     background=C["surface2"], foreground=C["fg_muted"],
-                    font=(FONT_UI, 8, "bold"), relief="flat", padding=(10, 7))
+                    font=(FONT_UI, 8, "bold"), relief="flat", padding=(10, 8))
         s.map("Treeview",
               background=[("selected", C["tree_select"])],
               foreground=[("selected", C["accent_hover"])])
         s.map("Treeview.Heading",
-              background=[("active", C["border_bright"])])
+              background=[("active", C["surface3"])])
 
         s.configure("TNotebook", background=C["bg"], borderwidth=0,
                     tabmargins=[0, 0, 0, 0])
         s.configure("TNotebook.Tab",
-                    background=C["surface"], foreground=C["fg_muted"],
-                    padding=[18, 8], font=(FONT_UI, 9, "bold"), borderwidth=0)
+                    background=C["surface2"], foreground=C["fg_muted"],
+                    padding=[20, 9], font=(FONT_UI, 9, "bold"), borderwidth=0)
         s.map("TNotebook.Tab",
               background=[("selected", C["bg"])],
               foreground=[("selected", C["fg"])],
@@ -614,17 +649,16 @@ class GitView:
         s.configure("TScrollbar",
                     background=C["scrollbar"], troughcolor=C["surface"],
                     arrowcolor=C["fg_subtle"], relief="flat",
-                    borderwidth=0, width=9)
+                    borderwidth=0, width=8)
         s.map("TScrollbar",
               background=[("active", C["scrollbar_hover"]),
                           ("pressed", C["accent"])])
 
         s.configure("Horizontal.TProgressbar",
                     troughcolor=C["surface2"], background=C["accent"],
-                    borderwidth=0, thickness=4)
-        s.configure("Success.Horizontal.TProgressbar",
-                    troughcolor=C["surface2"], background=C["success"],
-                    borderwidth=0, thickness=4)
+                    borderwidth=0, thickness=3)
+
+        s.configure("TPanedwindow", background=C["bg"])
 
         self.root.configure(bg=C["bg"])
         self.root.option_add("*TCombobox*Listbox.background",       C["surface2"])
@@ -646,26 +680,25 @@ class GitView:
         self._build_auth_bar(wrap)
 
         body = tk.Frame(wrap, bg=C["bg"])
-        body.pack(fill=tk.BOTH, expand=True, padx=14, pady=(0, 10))
+        body.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0, 8))
 
         self.notebook = ttk.Notebook(body)
         self.notebook.pack(fill=tk.BOTH, expand=True)
 
-        # Tabs
         self.browser_frame = tk.Frame(self.notebook, bg=C["bg"])
-        self.notebook.add(self.browser_frame,  text="  📁  Explorer  ")
+        self.notebook.add(self.browser_frame, text="  📁  Explorer  ")
 
         self.search_frame = tk.Frame(self.notebook, bg=C["bg"])
-        self.notebook.add(self.search_frame,   text="  🔍  Search User  ")
+        self.notebook.add(self.search_frame, text="  🔍  Search  ")
 
         self.commits_frame = tk.Frame(self.notebook, bg=C["bg"])
-        self.notebook.add(self.commits_frame,  text="  🕐  Commits  ")
+        self.notebook.add(self.commits_frame, text="  🕐  Commits  ")
 
         self.ops_frame = tk.Frame(self.notebook, bg=C["bg"])
-        self.notebook.add(self.ops_frame,      text="  ⚡  Operations  ")
+        self.notebook.add(self.ops_frame, text="  ⚡  Operations  ")
 
         self.about_frame = tk.Frame(self.notebook, bg=C["bg"])
-        self.notebook.add(self.about_frame,    text="  ℹ️  About  ")
+        self.notebook.add(self.about_frame, text="  ℹ️  About  ")
 
         self._build_explorer_tab()
         self._build_search_tab()
@@ -678,53 +711,58 @@ class GitView:
     # ── Title Bar ─────────────────────────────────────────────────
     def _build_titlebar(self, parent):
         C = self.C
-        tk.Frame(parent, bg=C["accent"], height=3).pack(fill=tk.X)
+        # Accent top border
+        tk.Frame(parent, bg=C["accent"], height=2).pack(fill=tk.X)
 
-        bar = tk.Frame(parent, bg=C["title_bar"], height=60)
+        bar = tk.Frame(parent, bg=C["title_bar"], height=56)
         bar.pack(fill=tk.X)
         bar.pack_propagate(False)
 
         inner = tk.Frame(bar, bg=C["title_bar"])
         inner.pack(fill=tk.BOTH, expand=True, padx=18)
 
-        # Logo & brand
+        # Brand left
         logo_f = tk.Frame(inner, bg=C["title_bar"])
         logo_f.pack(side=tk.LEFT, fill=tk.Y)
         tk.Label(logo_f, text="⬡", bg=C["title_bar"], fg=C["accent"],
-                 font=(FONT_UI, 24)).pack(side=tk.LEFT, padx=(0, 8), pady=10)
+                 font=(FONT_UI, 22)).pack(side=tk.LEFT, padx=(0, 8), pady=8)
         brand_f = tk.Frame(logo_f, bg=C["title_bar"])
         brand_f.pack(side=tk.LEFT, fill=tk.Y, pady=10)
         tk.Label(brand_f, text="GitView",
                  bg=C["title_bar"], fg=C["fg"],
-                 font=(FONT_TITLE, 16, "bold")).pack(anchor=tk.W)
-        tk.Label(brand_f, text=f"v{APP_VERSION}  ·  GitHub Explorer for Everyone",
+                 font=(FONT_TITLE, 15, "bold")).pack(anchor=tk.W)
+        tk.Label(brand_f, text=f"v{APP_VERSION}  ·  Premium GitHub Explorer",
                  bg=C["title_bar"], fg=C["fg_muted"],
                  font=(FONT_UI, 8)).pack(anchor=tk.W)
 
-        # Right controls
-        right = tk.Frame(inner, bg=C["title_bar"])
-        right.pack(side=tk.RIGHT, fill=tk.Y, pady=12)
-        make_btn(right, "❓  Help",    self._show_help,  style="ghost", C=C,
-                 font=(FONT_UI, 9)).pack(side=tk.RIGHT, padx=(4, 0))
-        self.theme_btn = make_btn(right,
-                                  "🌙  Dark" if self.current_theme == "dark" else "☀️  Light",
-                                  self._toggle_theme, style="ghost", C=C, font=(FONT_UI, 9))
-        self.theme_btn.pack(side=tk.RIGHT, padx=(4, 0))
-        make_btn(right, "🌐  GitHub",
-                 lambda: webbrowser.open(GITHUB_URL),
-                 style="ghost", C=C, font=(FONT_UI, 9)).pack(side=tk.RIGHT, padx=(4, 0))
-
-        # Rate-limit badge
+        # Rate limit badge
         rl_f = tk.Frame(inner, bg=C["title_bar"])
-        rl_f.pack(side=tk.RIGHT, fill=tk.Y, pady=14, padx=12)
+        rl_f.pack(side=tk.RIGHT, fill=tk.Y, padx=(8, 0), pady=10)
+        self.api_rate_lbl = tk.Label(rl_f, text="",
+                                     bg=C["title_bar"], fg=C["fg_subtle"],
+                                     font=(FONT_UI, 7))
+        self.api_rate_lbl.pack(anchor=tk.E)
         self.rate_lbl = tk.Label(rl_f, text="API  ●  —/—",
                                  bg=C["title_bar"], fg=C["fg_subtle"],
-                                 font=(FONT_UI, 8))
-        self.rate_lbl.pack(side=tk.RIGHT)
-        self.api_rate_lbl = tk.Label(inner, text="",
-                                     bg=C["title_bar"], fg=C["fg_subtle"],
-                                     font=(FONT_UI, 7, "bold"))
-        self.api_rate_lbl.pack(side=tk.RIGHT, padx=4, pady=14)
+                                 font=(FONT_MONO, 8))
+        self.rate_lbl.pack(anchor=tk.E)
+
+        # Right controls
+        right = tk.Frame(inner, bg=C["title_bar"])
+        right.pack(side=tk.RIGHT, fill=tk.Y, pady=10, padx=(0, 8))
+        for label, cmd in [
+            ("❓  Help",   self._show_help),
+            ("🌐  GitHub", lambda: webbrowser.open(GITHUB_URL)),
+        ]:
+            make_btn(right, label, cmd, style="ghost", C=C,
+                     font=(FONT_UI, 9), padx=10, pady=4).pack(side=tk.RIGHT, padx=2)
+
+        self.theme_btn = make_btn(
+            right,
+            "🌙  Dark" if self.current_theme == "dark" else "☀️  Light",
+            self._toggle_theme, style="ghost", C=C,
+            font=(FONT_UI, 9), padx=10, pady=4)
+        self.theme_btn.pack(side=tk.RIGHT, padx=2)
 
     # ── Auth Bar ──────────────────────────────────────────────────
     def _build_auth_bar(self, parent):
@@ -732,152 +770,154 @@ class GitView:
 
         bar = tk.Frame(parent, bg=C["surface"],
                        highlightbackground=C["border"], highlightthickness=1)
-        bar.pack(fill=tk.X, padx=14, pady=(6, 0))
+        bar.pack(fill=tk.X, padx=12, pady=(4, 0))
 
         inner = tk.Frame(bar, bg=C["surface"])
-        inner.pack(fill=tk.BOTH, expand=True, padx=14, pady=10)
+        inner.pack(fill=tk.BOTH, expand=True, padx=14, pady=8)
 
-        # ── LEFT: dual-mode input area ────────────────────────────
+        # Mode tabs
         left = tk.Frame(inner, bg=C["surface"])
         left.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Mode tabs (Token vs Public)
         mode_row = tk.Frame(left, bg=C["surface"])
         mode_row.pack(anchor=tk.W)
 
         self.auth_mode_var = tk.StringVar(value=self.auth_mode)
 
-        self._tab_token_btn = make_btn(mode_row, "🔑  Use Token", self._switch_to_token,
-                                       style="accent" if self.auth_mode == "token" else "ghost",
-                                       C=C, font=(FONT_UI, 8), padx=10, pady=3)
+        self._tab_token_btn = make_btn(
+            mode_row, "🔑  Token Mode", self._switch_to_token,
+            style="accent" if self.auth_mode == "token" else "ghost2",
+            C=C, font=(FONT_UI, 8, "bold"), padx=12, pady=4)
         self._tab_token_btn.pack(side=tk.LEFT)
 
-        self._tab_public_btn = make_btn(mode_row, "👤  Browse Public Profile",
-                                        self._switch_to_public,
-                                        style="accent" if self.auth_mode == "public" else "ghost",
-                                        C=C, font=(FONT_UI, 8), padx=10, pady=3)
+        self._tab_public_btn = make_btn(
+            mode_row, "👤  Browse Public",
+            self._switch_to_public,
+            style="accent" if self.auth_mode == "public" else "ghost2",
+            C=C, font=(FONT_UI, 8, "bold"), padx=12, pady=4)
         self._tab_public_btn.pack(side=tk.LEFT, padx=(4, 0))
 
-        # Token mode frame
+        # Token frame
         self._token_frame = tk.Frame(left, bg=C["surface"])
         self._token_frame.pack(fill=tk.X, pady=(6, 0))
-
-        tk.Label(self._token_frame, text="GITHUB TOKEN",
-                 bg=C["surface"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(anchor=tk.W, pady=(0, 3))
 
         tok_row = tk.Frame(self._token_frame, bg=C["surface"])
         tok_row.pack(fill=tk.X)
 
+        section_lbl(self._token_frame, "PERSONAL ACCESS TOKEN", C).pack(
+            anchor=tk.W, pady=(0, 3))
+        tok_row2 = tk.Frame(self._token_frame, bg=C["surface"])
+        tok_row2.pack(fill=tk.X)
+
         self.token_var = tk.StringVar()
-        self.token_entry = tk.Entry(tok_row, textvariable=self.token_var,
-                                    show="•", relief=tk.FLAT,
-                                    bg=C["entry_bg"], fg=C["fg"],
-                                    insertbackground=C["fg"],
-                                    font=(FONT_MONO, 10), width=40,
-                                    highlightthickness=1,
-                                    highlightbackground=C["border"],
-                                    highlightcolor=C["accent"])
+        self.token_entry = tk.Entry(
+            tok_row2, textvariable=self.token_var,
+            show="•", relief=tk.FLAT,
+            bg=C["entry_bg"], fg=C["fg"],
+            insertbackground=C["fg"],
+            font=(FONT_MONO, 10), width=42,
+            highlightthickness=1,
+            highlightbackground=C["entry_border"],
+            highlightcolor=C["accent"])
         self.token_entry.pack(side=tk.LEFT, ipady=6, padx=(0, 4))
         self.token_entry.bind("<Return>", lambda _: self._connect_token())
 
-        self.eye_btn = make_btn(tok_row, "👁", self._toggle_token_vis,
-                                style="ghost", C=C, font=(FONT_UI, 11),
+        self.eye_btn = make_btn(tok_row2, "👁", self._toggle_token_vis,
+                                style="ghost2", C=C, font=(FONT_UI, 11),
                                 padx=6, pady=4)
         self.eye_btn.pack(side=tk.LEFT, padx=(0, 4))
-        Tooltip(self.eye_btn, "Show / hide token text")
 
-        self.connect_btn = make_btn(tok_row, "  ⚡  Connect  ",
+        self.connect_btn = make_btn(tok_row2, "  ⚡  Connect  ",
                                     self._connect_token, style="accent", C=C,
                                     font=(FONT_UI, 9, "bold"), padx=14, pady=6)
         self.connect_btn.pack(side=tk.LEFT)
 
-        self.disconnect_btn = make_btn(tok_row, "✕  Disconnect",
+        self.disconnect_btn = make_btn(tok_row2, "✕  Disconnect",
                                        self._disconnect, style="danger", C=C,
                                        font=(FONT_UI, 9), pady=6)
         self.disconnect_btn.pack(side=tk.LEFT, padx=(4, 0))
         self.disconnect_btn.pack_forget()
 
-        # Help link for token
-        self.tok_help_lbl = tk.Label(self._token_frame,
-                                     text="🆘  Don't have a token? Click here to get one free →",
-                                     bg=C["surface"], fg=C["accent"],
-                                     font=(FONT_UI, 8), cursor="hand2")
+        self.tok_help_lbl = tk.Label(
+            self._token_frame,
+            text="🆘  No token? Click here to generate one for free →",
+            bg=C["surface"], fg=C["accent"],
+            font=(FONT_UI, 8), cursor="hand2")
         self.tok_help_lbl.pack(anchor=tk.W, pady=(3, 0))
-        self.tok_help_lbl.bind("<Button-1>",
-                               lambda _: webbrowser.open(
-                                   "https://github.com/settings/tokens/new"
-                                   "?description=GitView&scopes=repo"))
+        self.tok_help_lbl.bind(
+            "<Button-1>",
+            lambda _: webbrowser.open(
+                "https://github.com/settings/tokens/new"
+                "?description=GitView&scopes=repo"))
 
-        # Public mode frame
+        # Public frame
         self._public_frame = tk.Frame(left, bg=C["surface"])
-        # (packed or hidden based on mode)
 
-        tk.Label(self._public_frame,
-                 text="GITHUB USERNAME  or  github.com/username  or  full profile URL",
-                 bg=C["surface"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(anchor=tk.W, pady=(0, 3))
+        section_lbl(self._public_frame,
+                    "USERNAME  or  github.com/username  or  full URL", C).pack(
+            anchor=tk.W, pady=(0, 3))
 
         pub_row = tk.Frame(self._public_frame, bg=C["surface"])
         pub_row.pack(fill=tk.X)
 
         self.public_var = tk.StringVar()
-        self.public_entry = tk.Entry(pub_row, textvariable=self.public_var,
-                                     relief=tk.FLAT,
-                                     bg=C["entry_bg"], fg=C["fg"],
-                                     insertbackground=C["fg"],
-                                     font=(FONT_MONO, 11), width=40,
-                                     highlightthickness=1,
-                                     highlightbackground=C["border"],
-                                     highlightcolor=C["accent"])
+        self.public_entry = tk.Entry(
+            pub_row, textvariable=self.public_var,
+            relief=tk.FLAT,
+            bg=C["entry_bg"], fg=C["fg"],
+            insertbackground=C["fg"],
+            font=(FONT_MONO, 11), width=36,
+            highlightthickness=1,
+            highlightbackground=C["entry_border"],
+            highlightcolor=C["accent"])
         self.public_entry.pack(side=tk.LEFT, ipady=6, padx=(0, 6))
         self.public_entry.bind("<Return>", lambda _: self._connect_public())
 
-        # Quick-paste buttons
-        paste_examples = [("torvalds", "torvalds"),
-                          ("microsoft", "microsoft"),
-                          ("google", "google")]
-        for label, val in paste_examples:
+        for label, val in [("torvalds", "torvalds"),
+                            ("microsoft", "microsoft"),
+                            ("google", "google")]:
             b = make_btn(pub_row, label,
                          lambda v=val: (self.public_var.set(v), self._connect_public()),
-                         style="ghost", C=C, font=(FONT_UI, 8), padx=6, pady=6)
+                         style="ghost2", C=C, font=(FONT_UI, 8), padx=7, pady=6)
             b.pack(side=tk.LEFT, padx=2)
-            Tooltip(b, f"Browse {val}'s public repositories")
 
-        self.public_connect_btn = make_btn(pub_row, "  🚀  Browse  ",
-                                           self._connect_public, style="success", C=C,
-                                           font=(FONT_UI, 9, "bold"), padx=14, pady=6)
+        self.public_connect_btn = make_btn(
+            pub_row, "  🚀  Browse  ",
+            self._connect_public, style="success", C=C,
+            font=(FONT_UI, 9, "bold"), padx=14, pady=6)
         self.public_connect_btn.pack(side=tk.LEFT, padx=(6, 0))
 
         tk.Label(self._public_frame,
-                 text="📌  Public repos only — read access, no upload/delete  ·  60 API calls/hr (unauthenticated)",
+                 text="📌  Public repos only  ·  60 API calls/hr unauthenticated",
                  bg=C["surface"], fg=C["warning"],
                  font=(FONT_UI, 7)).pack(anchor=tk.W, pady=(3, 0))
 
-        # Show correct frame
         if self.auth_mode == "token":
             self._token_frame.pack(fill=tk.X, pady=(6, 0))
         else:
             self._public_frame.pack(fill=tk.X, pady=(6, 0))
 
-        # ── RIGHT: user card ──────────────────────────────────────
+        # Right: user card
+        right_sep = tk.Frame(inner, bg=C["border"], width=1)
+        right_sep.pack(side=tk.RIGHT, fill=tk.Y, padx=12)
+
         right_area = tk.Frame(inner, bg=C["surface"])
-        right_area.pack(side=tk.RIGHT, fill=tk.Y, padx=8)
+        right_area.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 8))
 
         self.avatar_lbl = tk.Label(right_area, text="○",
                                    bg=C["surface"], fg=C["fg_subtle"],
-                                   font=(FONT_UI, 28))
-        self.avatar_lbl.pack(side=tk.LEFT, padx=(0, 10))
+                                   font=(FONT_UI, 32))
+        self.avatar_lbl.pack(side=tk.LEFT, padx=(0, 12))
 
         user_col = tk.Frame(right_area, bg=C["surface"])
         user_col.pack(side=tk.LEFT, fill=tk.Y, pady=4)
 
         self.user_name_lbl = tk.Label(user_col, text="Not Connected",
                                       bg=C["surface"], fg=C["fg_muted"],
-                                      font=(FONT_UI, 11, "bold"))
+                                      font=(FONT_TITLE, 12, "bold"))
         self.user_name_lbl.pack(anchor=tk.W)
         self.user_meta_lbl = tk.Label(user_col,
-                                      text="Choose a method above and connect",
+                                      text="Choose Token or Public mode above",
                                       bg=C["surface"], fg=C["fg_subtle"],
                                       font=(FONT_UI, 8))
         self.user_meta_lbl.pack(anchor=tk.W)
@@ -890,7 +930,6 @@ class GitView:
                                    font=(FONT_UI, 7, "bold"))
         self.auth_badge.pack(anchor=tk.W, pady=(2, 0))
 
-        # Repo meta strip (far right)
         meta_area = tk.Frame(inner, bg=C["surface"])
         meta_area.pack(side=tk.RIGHT, fill=tk.Y, padx=12)
         self.repo_meta_lbl = tk.Label(meta_area, text="",
@@ -900,17 +939,17 @@ class GitView:
         self.repo_desc_lbl = tk.Label(meta_area, text="",
                                       bg=C["surface"], fg=C["fg_subtle"],
                                       font=(FONT_UI, 8), justify=tk.RIGHT,
-                                      wraplength=300)
+                                      wraplength=280)
         self.repo_desc_lbl.pack(anchor=tk.E)
 
-    # ── Mode switching ────────────────────────────────────────────
+    # ── Mode Switching ─────────────────────────────────────────────
     def _switch_to_token(self):
         self.auth_mode = "token"
         C = self.C
         self._tab_token_btn.config(bg=C["accent"], fg="#ffffff",
                                    activebackground=C["accent_hover"])
-        self._tab_public_btn.config(bg=C["surface"], fg=C["fg_muted"],
-                                    activebackground=C["surface2"])
+        self._tab_public_btn.config(bg=C["surface2"], fg=C["fg_muted"],
+                                    activebackground=C["surface3"])
         self._public_frame.pack_forget()
         self._token_frame.pack(fill=tk.X, pady=(6, 0))
 
@@ -919,8 +958,8 @@ class GitView:
         C = self.C
         self._tab_public_btn.config(bg=C["accent"], fg="#ffffff",
                                     activebackground=C["accent_hover"])
-        self._tab_token_btn.config(bg=C["surface"], fg=C["fg_muted"],
-                                   activebackground=C["surface2"])
+        self._tab_token_btn.config(bg=C["surface2"], fg=C["fg_muted"],
+                                   activebackground=C["surface3"])
         self._token_frame.pack_forget()
         self._public_frame.pack(fill=tk.X, pady=(6, 0))
 
@@ -933,380 +972,451 @@ class GitView:
 
         # Toolbar
         toolbar = tk.Frame(f, bg=C["bg"])
-        toolbar.pack(fill=tk.X, pady=(10, 6))
+        toolbar.pack(fill=tk.X, pady=(10, 0))
 
-        tk.Label(toolbar, text="REPOSITORY",
-                 bg=C["bg"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=(0, 4))
-
+        # Repo selector
+        repo_grp = tk.Frame(toolbar, bg=C["bg"])
+        repo_grp.pack(side=tk.LEFT)
+        section_lbl(repo_grp, "REPOSITORY", C).pack(anchor=tk.W, pady=(0, 2))
         self.repo_var = tk.StringVar()
-        self.repo_combo = ttk.Combobox(toolbar, textvariable=self.repo_var,
-                                       width=44, state="readonly",
+        self.repo_combo = ttk.Combobox(repo_grp, textvariable=self.repo_var,
+                                       width=42, state="readonly",
                                        font=(FONT_UI, 10))
-        self.repo_combo.pack(side=tk.LEFT, padx=(0, 16), ipady=4)
+        self.repo_combo.pack(side=tk.LEFT, ipady=4)
         self.repo_combo.bind("<<ComboboxSelected>>", self._on_repo_select)
 
-        tk.Label(toolbar, text="BRANCH",
-                 bg=C["bg"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=(0, 4))
-
+        # Branch selector
+        br_grp = tk.Frame(toolbar, bg=C["bg"])
+        br_grp.pack(side=tk.LEFT, padx=(16, 0))
+        section_lbl(br_grp, "BRANCH", C).pack(anchor=tk.W, pady=(0, 2))
         self.branch_var = tk.StringVar(value="main")
-        self.branch_combo = ttk.Combobox(toolbar, textvariable=self.branch_var,
-                                         width=18, font=(FONT_UI, 10))
-        self.branch_combo.pack(side=tk.LEFT, padx=(0, 16), ipady=4)
-        self.branch_combo.bind("<<ComboboxSelected>>", self._on_branch_change)
+        self.branch_combo = ttk.Combobox(br_grp, textvariable=self.branch_var,
+                                         width=18, state="readonly",
+                                         font=(FONT_UI, 10))
+        self.branch_combo.pack(side=tk.LEFT, ipady=4)
+        self.branch_combo.bind("<<ComboboxSelected>>", self._on_branch_select)
 
-        # Right toolbar buttons
-        for icon, label, cmd, style, tip in [
-            ("🔄", "Refresh",      self._load_repos,          "ghost",   "Reload repository list  [F5]"),
-            ("📌", "Pin Repo",     self._pin_current_repo,    "ghost",   "Pin this repo to the top of the list"),
-            ("🌐", "Open in Web",  self._open_in_browser,     "ghost",   "Open current path on GitHub.com"),
-            ("⭐", "Starred",      self._load_starred,        "ghost",   "Browse starred repositories"),
+        # Toolbar buttons
+        btn_row = tk.Frame(toolbar, bg=C["bg"])
+        btn_row.pack(side=tk.LEFT, padx=(16, 0))
+        section_lbl(btn_row, "ACTIONS", C).pack(anchor=tk.W, pady=(0, 2))
+        actions_row = tk.Frame(btn_row, bg=C["bg"])
+        actions_row.pack()
+        for label, cmd, style, tip in [
+            ("⌂  Home",   self._go_home,        "ghost2",  "Go to repository root [Home]"),
+            ("↑  Up",     self._go_up,           "ghost2",  "Go to parent folder [Backspace]"),
+            ("🔄  Refresh", self._refresh_dir,   "ghost2",  "Refresh current folder [F5]"),
+            ("📌  Pin",    self._pin_repo,        "ghost2",  "Pin/unpin this repository"),
+            ("📥  Download", self._download_selected, "ghost2", "Download selected [Ctrl+D]"),
+            ("📤  Upload",  self._upload_file,   "ghost2",  "Upload a file [Ctrl+U]"),
+            ("✏️  New File", self._create_file_dialog, "ghost2", "Create new file [Ctrl+N]"),
         ]:
-            b = make_btn(toolbar, f"{icon}  {label}", cmd, style=style, C=C,
-                         font=(FONT_UI, 9))
-            b.pack(side=tk.RIGHT, padx=2)
-            Tooltip(b, tip)
+            b = make_btn(actions_row, label, cmd, style=style, C=C,
+                         font=(FONT_UI, 8), padx=8, pady=4)
+            b.pack(side=tk.LEFT, padx=1)
+            Tooltip(b, tip, C)
 
-        # Navigation bar
-        nav = tk.Frame(f, bg=C["surface"],
-                       highlightbackground=C["border"], highlightthickness=1)
-        nav.pack(fill=tk.X, pady=(0, 6))
-        nav_inner = tk.Frame(nav, bg=C["surface"])
-        nav_inner.pack(fill=tk.X, padx=8, pady=5)
+        # Path bar + filter
+        path_row = tk.Frame(f, bg=C["surface"],
+                            highlightbackground=C["border"], highlightthickness=1)
+        path_row.pack(fill=tk.X, pady=(6, 0))
+        path_inner = tk.Frame(path_row, bg=C["surface"])
+        path_inner.pack(fill=tk.X, padx=12, pady=5)
 
-        home_btn = make_btn(nav_inner, "⌂", self._go_home,
-                            style="ghost", C=C, font=(FONT_UI, 13), padx=8, pady=3)
-        home_btn.pack(side=tk.LEFT)
-        Tooltip(home_btn, "Go to root  [Home]")
+        tk.Label(path_inner, text="📂", bg=C["surface"], fg=C["accent"],
+                 font=(FONT_UI, 10)).pack(side=tk.LEFT)
+        self.path_lbl = tk.Label(path_inner, text="/",
+                                 bg=C["surface"], fg=C["fg_muted"],
+                                 font=(FONT_MONO, 9))
+        self.path_lbl.pack(side=tk.LEFT, padx=(4, 0))
 
-        up_btn = make_btn(nav_inner, "↑", self._go_up,
-                          style="ghost", C=C, font=(FONT_UI, 13), padx=8, pady=3)
-        up_btn.pack(side=tk.LEFT, padx=(2, 6))
-        Tooltip(up_btn, "Go up one level  [Backspace]")
-
-        tk.Frame(nav_inner, bg=C["border"], width=1).pack(
-            side=tk.LEFT, fill=tk.Y, pady=2, padx=4)
-
-        self.path_frame = tk.Frame(nav_inner, bg=C["surface"])
-        self.path_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=8)
-        self.path_lbl = tk.Label(self.path_frame, text="  /",
-                                 bg=C["surface"], fg=C["accent"],
-                                 font=(FONT_MONO, 10))
-        self.path_lbl.pack(side=tk.LEFT)
-
-        # Quick-filter box
-        sf = tk.Frame(nav_inner, bg=C["surface2"],
-                      highlightbackground=C["border"], highlightthickness=1)
-        sf.pack(side=tk.RIGHT)
-        tk.Label(sf, text="🔍", bg=C["surface2"], fg=C["fg_muted"],
-                 font=(FONT_UI, 9)).pack(side=tk.LEFT, padx=(6, 0))
+        # Filter
+        filt_frame = tk.Frame(path_inner, bg=C["surface"])
+        filt_frame.pack(side=tk.RIGHT)
+        tk.Label(filt_frame, text="🔍", bg=C["surface"], fg=C["fg_subtle"],
+                 font=(FONT_UI, 9)).pack(side=tk.LEFT)
         self.filter_var = tk.StringVar()
-        self.filter_var.trace_add("write", lambda *_: self._filter_tree())
-        filter_entry = tk.Entry(sf, textvariable=self.filter_var,
-                                bg=C["surface2"], fg=C["fg"],
-                                insertbackground=C["fg"], relief=tk.FLAT,
-                                font=(FONT_UI, 10), width=22,
-                                highlightthickness=0)
-        filter_entry.pack(side=tk.LEFT, ipady=4, padx=(2, 0))
-        self._filter_entry_ref = filter_entry
-        clr = make_btn(sf, "✕", lambda: self.filter_var.set(""),
-                       style="ghost", C=C, font=(FONT_UI, 9), padx=4, pady=2)
-        clr.pack(side=tk.LEFT, padx=(0, 4))
-        Tooltip(sf, "Filter files in this folder  [Ctrl+F]  — type to find instantly")
+        self.filter_var.trace_add("write", lambda *_: self._apply_filter())
+        filt_entry = tk.Entry(filt_frame, textvariable=self.filter_var,
+                              relief=tk.FLAT,
+                              bg=C["entry_bg"], fg=C["fg"],
+                              insertbackground=C["fg"],
+                              font=(FONT_UI, 10), width=22,
+                              highlightthickness=1,
+                              highlightbackground=C["entry_border"],
+                              highlightcolor=C["accent"])
+        filt_entry.pack(side=tk.LEFT, ipady=4, padx=(2, 0))
+        self._filter_entry_ref = filt_entry
 
-        # Content area
-        content = tk.Frame(f, bg=C["bg"])
-        content.pack(fill=tk.BOTH, expand=True)
-
-        # File tree panel
-        tree_panel = tk.Frame(content, bg=C["surface"],
-                              highlightbackground=C["border"], highlightthickness=1)
-        tree_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        tree_hdr = tk.Frame(tree_panel, bg=C["surface2"], height=36)
-        tree_hdr.pack(fill=tk.X)
-        tree_hdr.pack_propagate(False)
-        tk.Label(tree_hdr, text="FILES & DIRECTORIES",
-                 bg=C["surface2"], fg=C["fg_muted"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=12, pady=10)
-        self.file_count_lbl = tk.Label(tree_hdr, text="",
-                                       bg=C["surface2"], fg=C["fg_subtle"],
+        self.file_count_lbl = tk.Label(path_inner, text="",
+                                       bg=C["surface"], fg=C["fg_subtle"],
                                        font=(FONT_UI, 8))
-        self.file_count_lbl.pack(side=tk.RIGHT, padx=12, pady=10)
+        self.file_count_lbl.pack(side=tk.RIGHT, padx=(0, 8))
 
-        tree_wrap = tk.Frame(tree_panel, bg=C["surface"])
-        tree_wrap.pack(fill=tk.BOTH, expand=True)
+        # File tree
+        tree_wrap = tk.Frame(f, bg=C["surface"],
+                             highlightbackground=C["border"], highlightthickness=1)
+        tree_wrap.pack(fill=tk.BOTH, expand=True, pady=(0, 0))
 
         self.tree = ttk.Treeview(tree_wrap,
-                                 columns=("icon", "type", "size"),
+                                 columns=("type_icon", "kind", "size"),
                                  show="tree headings",
                                  selectmode="extended")
-        self.tree.heading("#0",    text="  Name ▲", anchor=tk.W,
-                          command=lambda: self._sort_by("name"))
-        self.tree.heading("icon",  text="",          anchor=tk.CENTER)
-        self.tree.heading("type",  text="Type",       anchor=tk.W,
-                          command=lambda: self._sort_by("type"))
-        self.tree.heading("size",  text="Size",       anchor=tk.E,
-                          command=lambda: self._sort_by("size"))
-        self.tree.column("#0",   width=320, minwidth=180, stretch=True)
-        self.tree.column("icon", width=36,  minwidth=36,  stretch=False)
-        self.tree.column("type", width=80,  minwidth=60,  stretch=False)
-        self.tree.column("size", width=90,  minwidth=60,  stretch=False, anchor=tk.E)
+        self.tree.heading("#0",         text="  Name",   anchor=tk.W)
+        self.tree.heading("type_icon",  text="",         anchor=tk.CENTER)
+        self.tree.heading("kind",       text="Type",     anchor=tk.W)
+        self.tree.heading("size",       text="Size",     anchor=tk.E)
+        self.tree.column("#0",        width=440, minwidth=200, stretch=True)
+        self.tree.column("type_icon", width=40,  minwidth=30,  stretch=False)
+        self.tree.column("kind",      width=80,  minwidth=50,  stretch=False)
+        self.tree.column("size",      width=90,  minwidth=60,  stretch=False)
 
-        vsb = ttk.Scrollbar(tree_wrap,  orient=tk.VERTICAL,   command=self.tree.yview)
-        hsb = ttk.Scrollbar(tree_panel, orient=tk.HORIZONTAL, command=self.tree.xview)
+        vsb = ttk.Scrollbar(tree_wrap, orient=tk.VERTICAL,   command=self.tree.yview)
+        hsb = ttk.Scrollbar(tree_wrap, orient=tk.HORIZONTAL, command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        vsb.pack(side=tk.RIGHT, fill=tk.Y)
-        hsb.pack(fill=tk.X)
 
-        self.tree.bind("<Double-1>",         self._on_tree_double_click)
-        self.tree.bind("<Return>",           self._on_tree_double_click)
-        self.tree.bind("<Button-3>",         self._show_ctx_menu)
-        self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
+        vsb.pack(side=tk.RIGHT,  fill=tk.Y)
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+        self.tree.pack(fill=tk.BOTH, expand=True)
 
-        # Sidebar
-        sidebar = tk.Frame(content, bg=C["bg"], width=270)
-        sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
-        sidebar.pack_propagate(False)
-        self._build_action_panel(sidebar)
-        self._build_preview_panel(sidebar)
+        self.tree.bind("<Double-1>",          self._on_tree_double)
+        self.tree.bind("<Return>",            self._on_tree_double)
+        self.tree.bind("<Button-3>",          self._show_ctx_menu)
+        self.tree.heading("#0",   command=lambda: self._sort_by("name"))
+        self.tree.heading("kind", command=lambda: self._sort_by("kind"))
+        self.tree.heading("size", command=lambda: self._sort_by("size"))
 
-    def _build_action_panel(self, parent):
-        C = self.C
-        card = tk.Frame(parent, bg=C["surface"],
-                        highlightbackground=C["border"], highlightthickness=1)
-        card.pack(fill=tk.X, pady=(0, 10))
-
-        hdr = tk.Frame(card, bg=C["surface2"], height=34)
-        hdr.pack(fill=tk.X)
-        hdr.pack_propagate(False)
-        tk.Label(hdr, text="ACTIONS",
-                 bg=C["surface2"], fg=C["fg_muted"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=12, pady=8)
-
-        btn_grid = tk.Frame(card, bg=C["surface"])
-        btn_grid.pack(fill=tk.X, padx=10, pady=10)
-
-        def row(icon, label, cmd, style="default", tip=""):
-            b = make_btn(btn_grid, f"{icon}  {label}", cmd, style=style, C=C,
-                         font=(FONT_UI, 9), anchor=tk.W)
-            b.pack(fill=tk.X, pady=2)
-            if tip:
-                Tooltip(b, tip)
-            return b
-
-        row("📥", "Download Selected",   self._download_selected,   "accent",   "Ctrl+D")
-        row("📤", "Upload File",         self._upload_file,         "default",  "Ctrl+U")
-        row("📁", "Upload Folder",       self._upload_folder,       "default")
-        tk.Frame(btn_grid, bg=C["border"], height=1).pack(fill=tk.X, pady=5)
-        row("👁",  "Preview File",       self._preview_selected,    "default",  "Space")
-        row("✏️",  "Rename",             self._rename_selected,     "default",  "F2")
-        row("📋", "Copy Path",           self._copy_path,           "default")
-        tk.Frame(btn_grid, bg=C["border"], height=1).pack(fill=tk.X, pady=5)
-        row("📝", "New File",            self._create_file_dialog,  "default",  "Ctrl+N")
-        row("📂", "New Folder",          self._create_folder_dialog,"default")
-        tk.Frame(btn_grid, bg=C["border"], height=1).pack(fill=tk.X, pady=5)
-        row("🗑",  "Delete",             self._delete_selected,     "danger",   "Del")
-
-    def _build_preview_panel(self, parent):
-        C = self.C
-        card = tk.Frame(parent, bg=C["surface"],
-                        highlightbackground=C["border"], highlightthickness=1)
-        card.pack(fill=tk.BOTH, expand=True)
-
-        hdr = tk.Frame(card, bg=C["surface2"], height=34)
-        hdr.pack(fill=tk.X)
-        hdr.pack_propagate(False)
-        tk.Label(hdr, text="FILE INFO",
-                 bg=C["surface2"], fg=C["fg_muted"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=12, pady=8)
-
-        self.info_frame = tk.Frame(card, bg=C["surface"])
-        self.info_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
-
-        self.info_icon  = tk.Label(self.info_frame, text="",
-                                   bg=C["surface"], fg=C["fg"], font=(FONT_UI, 28))
-        self.info_icon.pack()
-        self.info_name  = tk.Label(self.info_frame, text="Select a file to see info",
-                                   bg=C["surface"], fg=C["fg_muted"],
-                                   font=(FONT_UI, 10, "bold"), wraplength=230)
-        self.info_name.pack(pady=(6, 0))
-        self.info_meta  = tk.Label(self.info_frame, text="",
-                                   bg=C["surface"], fg=C["fg_subtle"],
-                                   font=(FONT_UI, 8), wraplength=230)
-        self.info_meta.pack(pady=(2, 0))
+        # Info panel
+        self.info_frame = tk.Frame(tree_wrap, bg=C["surface"],
+                                   highlightbackground=C["border"],
+                                   highlightthickness=0)
+        self.info_lbl = tk.Label(self.info_frame, text="",
+                                 bg=C["surface"], fg=C["accent"],
+                                 font=(FONT_UI, 18))
+        self.info_lbl.pack(pady=(30, 8))
+        self.info_main = tk.Label(self.info_frame, text="",
+                                  bg=C["surface"], fg=C["fg_muted"],
+                                  font=(FONT_UI, 12, "bold"))
+        self.info_main.pack()
         self.info_extra = tk.Label(self.info_frame, text="",
                                    bg=C["surface"], fg=C["fg_subtle"],
-                                   font=(FONT_UI, 8), wraplength=230,
+                                   font=(FONT_UI, 9), wraplength=320,
                                    justify=tk.CENTER)
-        self.info_extra.pack(pady=(2, 0))
+        self.info_extra.pack(pady=(4, 0))
 
     # ══════════════════════════════════════════════════════════════════
-    #   SEARCH TAB — USER-SCOPED
+    #   SEARCH TAB  — COMPLETELY REDESIGNED v4
     # ══════════════════════════════════════════════════════════════════
     def _build_search_tab(self):
         C = self.C
         f = self.search_frame
 
-        # ── Controls ──────────────────────────────────────────────
-        ctrl = tk.Frame(f, bg=C["surface"],
-                        highlightbackground=C["border"], highlightthickness=1)
-        ctrl.pack(fill=tk.X, pady=(10, 6))
+        # ── Top Search Bar ─────────────────────────────────────────
+        top_bar = tk.Frame(f, bg=C["surface"],
+                           highlightbackground=C["border"], highlightthickness=1)
+        top_bar.pack(fill=tk.X, pady=(10, 0))
 
-        inner = tk.Frame(ctrl, bg=C["surface"])
-        inner.pack(fill=tk.X, padx=12, pady=10)
+        top_inner = tk.Frame(top_bar, bg=C["surface"])
+        top_inner.pack(fill=tk.X, padx=14, pady=10)
 
-        # Search query
-        tk.Label(inner, text="🔍  SEARCH WITHIN LOADED USER",
+        # Search input row
+        inp_row = tk.Frame(top_inner, bg=C["surface"])
+        inp_row.pack(fill=tk.X)
+
+        tk.Label(inp_row, text="🔍",
+                 bg=C["surface"], fg=C["accent"],
+                 font=(FONT_UI, 14)).pack(side=tk.LEFT, padx=(0, 6))
+
+        self.usearch_var = tk.StringVar()
+        self.search_entry = tk.Entry(
+            inp_row, textvariable=self.usearch_var,
+            relief=tk.FLAT,
+            bg=C["entry_bg"], fg=C["fg"],
+            insertbackground=C["accent"],
+            font=(FONT_UI, 13), width=46,
+            highlightthickness=1,
+            highlightbackground=C["entry_border"],
+            highlightcolor=C["accent"])
+        self.search_entry.pack(side=tk.LEFT, ipady=7, padx=(0, 8))
+        self.search_entry.bind("<Return>", lambda _: self._do_user_search())
+        self.search_entry.bind("<Down>",   lambda _: self._show_history_dropdown())
+        self.search_entry.bind("<Up>",     lambda _: self._show_history_dropdown())
+
+        self.search_go_btn = make_btn(inp_row, "  Search  ",
+                                      self._do_user_search, style="accent", C=C,
+                                      font=(FONT_UI, 10, "bold"), padx=18, pady=7)
+        self.search_go_btn.pack(side=tk.LEFT)
+
+        self.search_cancel_btn = make_btn(inp_row, "✕  Cancel",
+                                          self._cancel_user_search,
+                                          style="danger", C=C,
+                                          font=(FONT_UI, 9), pady=7, padx=10)
+        self.search_cancel_btn.pack(side=tk.LEFT, padx=(4, 0))
+        self.search_cancel_btn.config(state=tk.DISABLED)
+
+        self.search_hist_btn = make_btn(inp_row, "🕐  History",
+                                        self._show_history_dropdown,
+                                        style="ghost2", C=C,
+                                        font=(FONT_UI, 9), pady=7, padx=10)
+        self.search_hist_btn.pack(side=tk.LEFT, padx=(4, 0))
+
+        self.search_count_lbl = tk.Label(inp_row, text="",
+                                         bg=C["surface"], fg=C["fg_muted"],
+                                         font=(FONT_UI, 9))
+        self.search_count_lbl.pack(side=tk.RIGHT)
+
+        # ── Scope selector pills ──────────────────────────────────
+        scope_row = tk.Frame(top_inner, bg=C["surface"])
+        scope_row.pack(fill=tk.X, pady=(8, 0))
+
+        tk.Label(scope_row, text="SEARCH IN:",
                  bg=C["surface"], fg=C["fg_subtle"],
                  font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=(0, 8))
 
-        self.usearch_var = tk.StringVar()
-        usearch_entry = tk.Entry(inner, textvariable=self.usearch_var,
-                                 relief=tk.FLAT,
-                                 bg=C["entry_bg"], fg=C["fg"],
-                                 insertbackground=C["fg"],
-                                 font=(FONT_UI, 11), width=38,
-                                 highlightthickness=1,
-                                 highlightbackground=C["border"],
-                                 highlightcolor=C["accent"])
-        usearch_entry.pack(side=tk.LEFT, ipady=6, padx=(0, 8))
-        usearch_entry.bind("<Return>", lambda _: self._do_user_search())
-
-        # Scope selector
-        tk.Label(inner, text="IN",
-                 bg=C["surface"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=(0, 6))
-
         self.usearch_scope_var = tk.StringVar(value="Repos")
-        scopes = [
-            ("Repos",     "Search repository names & descriptions"),
-            ("Files",     "Search file names across repos"),
-            ("Commits",   "Search commit messages"),
-            ("Topics",    "Filter repos by language / topic"),
+        self._scope_btns: Dict[str, tk.Button] = {}
+        scopes_info = [
+            ("Repos",   "📦", "Repository names & descriptions"),
+            ("Content", "📄", "Keyword search INSIDE file contents  ★ NEW"),
+            ("Files",   "🗂", "Search file names across all repos"),
+            ("Commits", "🕐", "Search through commit messages"),
+            ("Topics",  "🏷", "Filter repos by language or topic"),
         ]
-        for sc, tip in scopes:
-            rb = tk.Radiobutton(inner, text=sc, variable=self.usearch_scope_var,
-                                value=sc, bg=C["surface"], fg=C["fg"],
-                                selectcolor=C["surface2"],
-                                activebackground=C["surface"],
-                                font=(FONT_UI, 9), cursor="hand2")
-            rb.pack(side=tk.LEFT, padx=3)
-            Tooltip(rb, tip)
-
-        srch_btn = make_btn(inner, "  Search  ", self._do_user_search,
-                            style="accent", C=C, font=(FONT_UI, 9, "bold"),
-                            padx=14, pady=6)
-        srch_btn.pack(side=tk.LEFT, padx=(8, 4))
-
-        self.usearch_cancel_btn = make_btn(inner, "✕", self._cancel_user_search,
-                                           style="danger", C=C,
-                                           font=(FONT_UI, 9), pady=6, padx=8)
-        self.usearch_cancel_btn.pack(side=tk.LEFT)
-        self.usearch_cancel_btn.config(state=tk.DISABLED)
-
-        self.usearch_count_lbl = tk.Label(inner, text="",
-                                          bg=C["surface"], fg=C["fg_muted"],
-                                          font=(FONT_UI, 9))
-        self.usearch_count_lbl.pack(side=tk.RIGHT, padx=8)
+        for sc, icon, tip in scopes_info:
+            is_sel = sc == "Repos"
+            b = tk.Button(
+                scope_row,
+                text=f"{icon} {sc}",
+                command=lambda s=sc: self._select_scope(s),
+                font=(FONT_UI, 8, "bold"),
+                relief=tk.FLAT, cursor="hand2", padx=10, pady=4, bd=0,
+                bg=C["accent"] if is_sel else C["surface2"],
+                fg="#ffffff" if is_sel else C["fg_muted"],
+                activebackground=C["accent_hover"],
+                activeforeground="#ffffff",
+                highlightthickness=0)
+            b.pack(side=tk.LEFT, padx=(0, 4))
+            Tooltip(b, tip, C)
+            self._scope_btns[sc] = b
 
         # Info banner
-        self.usearch_banner = tk.Label(f,
-            text="ℹ️   Connect to a GitHub user first, then search across all their repositories here.",
+        self.search_banner = tk.Frame(f, bg=C["warning_subtle"])
+        self.search_banner.pack(fill=tk.X)
+        self._banner_lbl = tk.Label(
+            self.search_banner,
+            text="ℹ️   Connect to a GitHub user first, then search across all their repositories.",
             bg=C["warning_subtle"], fg=C["warning"],
-            font=(FONT_UI, 9), padx=12, pady=8, anchor=tk.W)
-        self.usearch_banner.pack(fill=tk.X)
+            font=(FONT_UI, 9), padx=12, pady=7, anchor=tk.W)
+        self._banner_lbl.pack(fill=tk.X)
 
-        # Results split
-        results_area = tk.Frame(f, bg=C["bg"])
-        results_area.pack(fill=tk.BOTH, expand=True)
+        # ── Results area ──────────────────────────────────────────
+        results_outer = tk.Frame(f, bg=C["bg"])
+        results_outer.pack(fill=tk.BOTH, expand=True, pady=(6, 0))
 
-        # Results list
-        res_panel = tk.Frame(results_area, bg=C["surface"],
-                             highlightbackground=C["border"], highlightthickness=1)
-        res_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Left: scrollable result cards
+        left_panel = tk.Frame(results_outer, bg=C["bg"])
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        res_hdr = tk.Frame(res_panel, bg=C["surface2"], height=34)
+        # Results header bar
+        res_hdr = tk.Frame(left_panel, bg=C["surface"],
+                           highlightbackground=C["border"], highlightthickness=1,
+                           height=34)
         res_hdr.pack(fill=tk.X)
         res_hdr.pack_propagate(False)
         tk.Label(res_hdr, text="RESULTS",
-                 bg=C["surface2"], fg=C["fg_muted"],
+                 bg=C["surface"], fg=C["fg_subtle"],
                  font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=12, pady=8)
-        self.usearch_prog_lbl = tk.Label(res_hdr, text="",
-                                         bg=C["surface2"], fg=C["accent"],
-                                         font=(FONT_UI, 8))
-        self.usearch_prog_lbl.pack(side=tk.RIGHT, padx=12, pady=8)
+        self.search_prog_lbl = tk.Label(res_hdr, text="",
+                                        bg=C["surface"], fg=C["accent"],
+                                        font=(FONT_UI, 8))
+        self.search_prog_lbl.pack(side=tk.LEFT, padx=8, pady=8)
 
-        res_wrap = tk.Frame(res_panel, bg=C["surface"])
-        res_wrap.pack(fill=tk.BOTH, expand=True)
+        # Sort controls
+        sort_row = tk.Frame(res_hdr, bg=C["surface"])
+        sort_row.pack(side=tk.RIGHT, padx=8, pady=4)
+        tk.Label(sort_row, text="Sort:",
+                 bg=C["surface"], fg=C["fg_subtle"],
+                 font=(FONT_UI, 7)).pack(side=tk.LEFT)
+        self.result_sort_var = tk.StringVar(value="relevance")
+        for sv, sl in [("relevance","Relevance"),("name","Name"),("date","Date")]:
+            rb = tk.Radiobutton(sort_row, text=sl,
+                                variable=self.result_sort_var, value=sv,
+                                bg=C["surface"], fg=C["fg_muted"],
+                                selectcolor=C["surface3"],
+                                activebackground=C["surface"],
+                                font=(FONT_UI, 8), cursor="hand2",
+                                command=self._resort_results)
+            rb.pack(side=tk.LEFT, padx=2)
 
-        self.uresults_tree = ttk.Treeview(res_wrap,
-                                          columns=("detail", "meta", "when"),
-                                          show="tree headings",
-                                          selectmode="browse")
-        self.uresults_tree.heading("#0",      text="  Name",   anchor=tk.W)
-        self.uresults_tree.heading("detail",  text="Detail",   anchor=tk.W)
-        self.uresults_tree.heading("meta",    text="Info",     anchor=tk.W)
-        self.uresults_tree.heading("when",    text="Updated",  anchor=tk.W)
-        self.uresults_tree.column("#0",     width=260, minwidth=120, stretch=True)
-        self.uresults_tree.column("detail", width=240, minwidth=100, stretch=True)
-        self.uresults_tree.column("meta",   width=140, minwidth=80,  stretch=False)
-        self.uresults_tree.column("when",   width=100, minwidth=60,  stretch=False)
+        # Scrollable results list
+        res_scroll_frame = tk.Frame(left_panel, bg=C["bg"])
+        res_scroll_frame.pack(fill=tk.BOTH, expand=True)
 
-        rvsb = ttk.Scrollbar(res_wrap, orient=tk.VERTICAL,
-                              command=self.uresults_tree.yview)
-        self.uresults_tree.configure(yscrollcommand=rvsb.set)
-        self.uresults_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        rvsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.results_canvas = tk.Canvas(res_scroll_frame, bg=C["bg"],
+                                        highlightthickness=0)
+        results_vsb = ttk.Scrollbar(res_scroll_frame, orient=tk.VERTICAL,
+                                    command=self.results_canvas.yview)
+        self.results_canvas.configure(yscrollcommand=results_vsb.set)
+        results_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.results_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.uresults_tree.bind("<<TreeviewSelect>>", self._on_usearch_select)
-        self.uresults_tree.bind("<Double-1>",          self._on_usearch_open)
+        self.results_inner = tk.Frame(self.results_canvas, bg=C["bg"])
+        self._results_window = self.results_canvas.create_window(
+            (0, 0), window=self.results_inner, anchor="nw")
 
-        # Detail pane
-        det_panel = tk.Frame(results_area, bg=C["surface"],
-                             highlightbackground=C["border"], highlightthickness=1,
-                             width=320)
-        det_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
-        det_panel.pack_propagate(False)
+        self.results_inner.bind("<Configure>", self._on_results_configure)
+        self.results_canvas.bind("<Configure>", self._on_canvas_configure)
+        self.results_canvas.bind("<MouseWheel>",
+                                 lambda e: self.results_canvas.yview_scroll(
+                                     int(-1*(e.delta/120)), "units"))
+        self.results_canvas.bind("<Button-4>",
+                                 lambda e: self.results_canvas.yview_scroll(-1, "units"))
+        self.results_canvas.bind("<Button-5>",
+                                 lambda e: self.results_canvas.yview_scroll(1, "units"))
 
-        det_hdr = tk.Frame(det_panel, bg=C["surface2"], height=34)
+        # Pagination bar
+        self.pager_frame = tk.Frame(left_panel, bg=C["surface"],
+                                    highlightbackground=C["border"], highlightthickness=1,
+                                    height=38)
+        self.pager_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        self.pager_frame.pack_propagate(False)
+        self._build_pager()
+
+        # Right: detail pane
+        right_panel = tk.Frame(results_outer, bg=C["surface"],
+                               highlightbackground=C["border"], highlightthickness=1,
+                               width=340)
+        right_panel.pack(side=tk.RIGHT, fill=tk.Y, padx=(8, 0))
+        right_panel.pack_propagate(False)
+
+        det_hdr = tk.Frame(right_panel, bg=C["surface2"], height=34)
         det_hdr.pack(fill=tk.X)
         det_hdr.pack_propagate(False)
-        tk.Label(det_hdr, text="DETAIL",
+        tk.Label(det_hdr, text="DETAILS",
                  bg=C["surface2"], fg=C["fg_muted"],
                  font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=12, pady=8)
 
-        det_inner = tk.Frame(det_panel, bg=C["surface"])
-        det_inner.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
+        det_scroll = tk.Frame(right_panel, bg=C["surface"])
+        det_scroll.pack(fill=tk.BOTH, expand=True)
 
-        self.udet_icon = tk.Label(det_inner, text="🔍",
-                                  bg=C["surface"], fg=C["accent"],
-                                  font=(FONT_UI, 30))
-        self.udet_icon.pack()
-        self.udet_name = tk.Label(det_inner, text="Run a search to see details",
-                                  bg=C["surface"], fg=C["fg_muted"],
-                                  font=(FONT_UI, 11, "bold"), wraplength=290)
-        self.udet_name.pack(pady=(8, 0))
-        self.udet_body = tk.Text(det_inner, wrap=tk.WORD, bg=C["surface"],
-                                 fg=C["fg"], font=(FONT_MONO, 8),
-                                 relief=tk.FLAT, highlightthickness=0,
-                                 height=14, state=tk.DISABLED)
-        self.udet_body.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
+        self.detail_text = tk.Text(
+            det_scroll, wrap=tk.WORD,
+            bg=C["surface"], fg=C["fg"],
+            font=(FONT_UI, 9), relief=tk.FLAT,
+            highlightthickness=0, state=tk.DISABLED,
+            padx=14, pady=12,
+            selectbackground=C["tree_select"])
+        det_vsb = ttk.Scrollbar(det_scroll, command=self.detail_text.yview)
+        self.detail_text.configure(yscrollcommand=det_vsb.set)
+        det_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.detail_text.pack(fill=tk.BOTH, expand=True)
 
-        det_btns = tk.Frame(det_panel, bg=C["surface"])
+        det_btns = tk.Frame(right_panel, bg=C["surface"])
         det_btns.pack(fill=tk.X, padx=12, pady=(0, 12))
-        self.udet_open_btn = make_btn(det_btns, "🌐  Open on GitHub",
-                                      lambda: None, style="accent", C=C,
-                                      font=(FONT_UI, 9), pady=5)
-        self.udet_open_btn.pack(fill=tk.X)
-        self.udet_nav_btn = make_btn(det_btns, "📁  Navigate to in Explorer",
-                                     lambda: None, style="ghost", C=C,
+        self.det_open_btn = make_btn(det_btns, "🌐  Open on GitHub",
+                                     lambda: None, style="accent", C=C,
                                      font=(FONT_UI, 9), pady=5)
-        self.udet_nav_btn.pack(fill=tk.X, pady=(4, 0))
+        self.det_open_btn.pack(fill=tk.X)
+        self.det_nav_btn = make_btn(det_btns, "📁  Navigate in Explorer",
+                                    lambda: None, style="ghost2", C=C,
+                                    font=(FONT_UI, 9), pady=5)
+        self.det_nav_btn.pack(fill=tk.X, pady=(4, 0))
 
-        self._usearch_results_data: Dict[str, Any] = {}
+        self._show_search_empty_state()
+
+    def _on_results_configure(self, event=None):
+        self.results_canvas.configure(
+            scrollregion=self.results_canvas.bbox("all"))
+
+    def _on_canvas_configure(self, event=None):
+        w = self.results_canvas.winfo_width()
+        self.results_canvas.itemconfig(self._results_window, width=w)
+
+    def _build_pager(self):
+        C = self.C
+        for w in self.pager_frame.winfo_children():
+            w.destroy()
+        inner = tk.Frame(self.pager_frame, bg=C["surface"])
+        inner.pack(side=tk.LEFT, padx=12, pady=5)
+        self.pager_prev = make_btn(inner, "← Prev",
+                                   lambda: self._go_page(-1), style="ghost2", C=C,
+                                   font=(FONT_UI, 8), padx=8, pady=3)
+        self.pager_prev.pack(side=tk.LEFT)
+        self.pager_lbl = tk.Label(inner, text="Page 0 / 0",
+                                  bg=C["surface"], fg=C["fg_muted"],
+                                  font=(FONT_UI, 8))
+        self.pager_lbl.pack(side=tk.LEFT, padx=8)
+        self.pager_next = make_btn(inner, "Next →",
+                                   lambda: self._go_page(1), style="ghost2", C=C,
+                                   font=(FONT_UI, 8), padx=8, pady=3)
+        self.pager_next.pack(side=tk.LEFT)
+
+    def _go_page(self, delta: int):
+        total = len(self._search_results_all)
+        max_page = max(1, (total + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE)
+        new_page = max(1, min(max_page, self._search_page + delta))
+        if new_page != self._search_page:
+            self._search_page = new_page
+            self._render_results_page()
+
+    def _select_scope(self, scope: str):
+        self.usearch_scope_var.set(scope)
+        C = self.C
+        for sc, btn in self._scope_btns.items():
+            if sc == scope:
+                btn.config(bg=C["accent"], fg="#ffffff",
+                           activebackground=C["accent_hover"])
+            else:
+                btn.config(bg=C["surface2"], fg=C["fg_muted"],
+                           activebackground=C["surface3"])
+
+    def _show_search_empty_state(self):
+        C = self.C
+        for w in self.results_inner.winfo_children():
+            w.destroy()
+        frame = tk.Frame(self.results_inner, bg=C["bg"])
+        frame.pack(pady=60)
+        tk.Label(frame, text="🔍",
+                 bg=C["bg"], fg=C["fg_subtle"],
+                 font=(FONT_UI, 36)).pack()
+        tk.Label(frame, text="Search within loaded user",
+                 bg=C["bg"], fg=C["fg_muted"],
+                 font=(FONT_TITLE, 13, "bold")).pack(pady=(8, 0))
+        tk.Label(frame,
+                 text="Connect a GitHub account first, then search\nrepos · file content · file names · commits · topics",
+                 bg=C["bg"], fg=C["fg_subtle"],
+                 font=(FONT_UI, 9), justify=tk.CENTER).pack(pady=(6, 0))
+
+    def _show_history_dropdown(self):
+        if not self._search_history:
+            return
+        C = self.C
+        popup = tk.Toplevel(self.root)
+        popup.wm_overrideredirect(True)
+        popup.wm_attributes("-topmost", True)
+        x = self.search_entry.winfo_rootx()
+        y = self.search_entry.winfo_rooty() + self.search_entry.winfo_height() + 2
+        popup.wm_geometry(f"+{x}+{y}")
+        outer = tk.Frame(popup, bg=C["border_bright"], padx=1, pady=1)
+        outer.pack()
+        inner = tk.Frame(outer, bg=C["surface2"])
+        inner.pack()
+        for query in reversed(list(self._search_history)):
+            lbl = tk.Label(inner, text=f"🕐  {query}",
+                           bg=C["surface2"], fg=C["fg"],
+                           font=(FONT_UI, 9), anchor=tk.W,
+                           padx=12, pady=5, cursor="hand2",
+                           width=40)
+            lbl.pack(fill=tk.X)
+            def _pick(q=query, p=popup):
+                self.usearch_var.set(q)
+                p.destroy()
+                self._do_user_search()
+            lbl.bind("<Button-1>", lambda _, fn=_pick: fn())
+            lbl.bind("<Enter>",    lambda e, w=lbl: w.config(bg=C["tree_select"]))
+            lbl.bind("<Leave>",    lambda e, w=lbl: w.config(bg=C["surface2"]))
+        popup.bind("<FocusOut>", lambda _: popup.destroy())
+        popup.focus_set()
 
     # ══════════════════════════════════════════════════════════════════
     #   COMMITS TAB
@@ -1321,27 +1431,21 @@ class GitView:
         inner = tk.Frame(ctrl, bg=C["surface"])
         inner.pack(fill=tk.X, padx=12, pady=8)
 
-        tk.Label(inner, text="AUTHOR FILTER",
-                 bg=C["surface"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=(0, 4))
-        self.commit_author_var = tk.StringVar()
-        tk.Entry(inner, textvariable=self.commit_author_var,
-                 relief=tk.FLAT, bg=C["entry_bg"], fg=C["fg"],
-                 insertbackground=C["fg"], font=(FONT_UI, 10),
-                 width=18, highlightthickness=1,
-                 highlightbackground=C["border"],
-                 highlightcolor=C["accent"]).pack(side=tk.LEFT, ipady=5, padx=(0, 12))
-
-        tk.Label(inner, text="PATH FILTER",
-                 bg=C["surface"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=(0, 4))
-        self.commit_path_var = tk.StringVar()
-        tk.Entry(inner, textvariable=self.commit_path_var,
-                 relief=tk.FLAT, bg=C["entry_bg"], fg=C["fg"],
-                 insertbackground=C["fg"], font=(FONT_UI, 10),
-                 width=22, highlightthickness=1,
-                 highlightbackground=C["border"],
-                 highlightcolor=C["accent"]).pack(side=tk.LEFT, ipady=5, padx=(0, 12))
+        for lbl, var_name in [("AUTHOR FILTER", "commit_author_var"),
+                               ("PATH FILTER",   "commit_path_var")]:
+            grp = tk.Frame(inner, bg=C["surface"])
+            grp.pack(side=tk.LEFT, padx=(0, 16))
+            tk.Label(grp, text=lbl,
+                     bg=C["surface"], fg=C["fg_subtle"],
+                     font=(FONT_UI, 7, "bold")).pack(anchor=tk.W, pady=(0, 2))
+            var = tk.StringVar()
+            setattr(self, var_name, var)
+            tk.Entry(grp, textvariable=var,
+                     relief=tk.FLAT, bg=C["entry_bg"], fg=C["fg"],
+                     insertbackground=C["fg"], font=(FONT_UI, 10),
+                     width=18, highlightthickness=1,
+                     highlightbackground=C["entry_border"],
+                     highlightcolor=C["accent"]).pack(ipady=5)
 
         self.commit_load_btn = make_btn(inner, "  🕐  Load Commits  ",
                                         self._load_commits, style="accent", C=C,
@@ -1355,7 +1459,6 @@ class GitView:
         split = tk.Frame(f, bg=C["bg"])
         split.pack(fill=tk.BOTH, expand=True)
 
-        # List
         com_panel = tk.Frame(split, bg=C["surface"],
                              highlightbackground=C["border"], highlightthickness=1)
         com_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -1368,10 +1471,9 @@ class GitView:
 
         com_wrap = tk.Frame(com_panel, bg=C["surface"])
         com_wrap.pack(fill=tk.BOTH, expand=True)
-        self.commits_tree = ttk.Treeview(com_wrap,
-                                         columns=("sha", "author", "date"),
-                                         show="tree headings",
-                                         selectmode="browse")
+        self.commits_tree = ttk.Treeview(
+            com_wrap, columns=("sha", "author", "date"),
+            show="tree headings", selectmode="browse")
         self.commits_tree.heading("#0",     text="  Message",  anchor=tk.W)
         self.commits_tree.heading("sha",    text="SHA",        anchor=tk.W)
         self.commits_tree.heading("author", text="Author",     anchor=tk.W)
@@ -1389,7 +1491,6 @@ class GitView:
         self.commits_tree.bind("<<TreeviewSelect>>", self._on_commit_select)
         self.commits_tree.bind("<Double-1>",          self._on_commit_open)
 
-        # Detail
         cdp = tk.Frame(split, bg=C["surface"],
                        highlightbackground=C["border"], highlightthickness=1,
                        width=370)
@@ -1403,29 +1504,16 @@ class GitView:
                  bg=C["surface2"], fg=C["fg_muted"],
                  font=(FONT_UI, 7, "bold")).pack(side=tk.LEFT, padx=12, pady=8)
 
-        cdp_body = tk.Frame(cdp, bg=C["surface"])
-        cdp_body.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
-        self.commit_msg_lbl  = tk.Label(cdp_body, text="Select a commit",
-                                        bg=C["surface"], fg=C["fg_muted"],
-                                        font=(FONT_UI, 10, "bold"),
-                                        wraplength=330, justify=tk.LEFT)
-        self.commit_msg_lbl.pack(anchor=tk.W)
-        self.commit_meta_lbl = tk.Label(cdp_body, text="",
-                                        bg=C["surface"], fg=C["fg_subtle"],
-                                        font=(FONT_UI, 8), wraplength=330,
-                                        justify=tk.LEFT)
-        self.commit_meta_lbl.pack(anchor=tk.W, pady=(4, 8))
-        tk.Frame(cdp_body, bg=C["border"], height=1).pack(fill=tk.X, pady=4)
-        tk.Label(cdp_body, text="CHANGED FILES",
-                 bg=C["surface"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 7, "bold")).pack(anchor=tk.W, pady=(4, 2))
-        self.commit_files_box = tk.Text(cdp_body, wrap=tk.WORD,
-                                        bg=C["surface2"], fg=C["fg"],
-                                        font=(FONT_MONO, 8), relief=tk.FLAT,
-                                        highlightthickness=1,
-                                        highlightbackground=C["border"],
-                                        height=8, state=tk.DISABLED)
-        self.commit_files_box.pack(fill=tk.X)
+        self.commit_detail = tk.Text(
+            cdp, wrap=tk.WORD, bg=C["surface"], fg=C["fg"],
+            font=(FONT_MONO, 9), relief=tk.FLAT,
+            highlightthickness=0, state=tk.DISABLED,
+            padx=12, pady=12)
+        cdp_sb = ttk.Scrollbar(cdp, command=self.commit_detail.yview)
+        self.commit_detail.configure(yscrollcommand=cdp_sb.set)
+        cdp_sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.commit_detail.pack(fill=tk.BOTH, expand=True)
+
         cdp_btns = tk.Frame(cdp, bg=C["surface"])
         cdp_btns.pack(fill=tk.X, padx=12, pady=(0, 12))
         self.commit_open_btn = make_btn(cdp_btns, "🌐  View on GitHub",
@@ -1433,10 +1521,9 @@ class GitView:
                                         font=(FONT_UI, 9), pady=5)
         self.commit_open_btn.pack(fill=tk.X)
         self.commit_copy_sha = make_btn(cdp_btns, "📋  Copy SHA",
-                                        lambda: None, style="ghost", C=C,
+                                        lambda: None, style="ghost2", C=C,
                                         font=(FONT_UI, 9), pady=5)
         self.commit_copy_sha.pack(fill=tk.X, pady=(4, 0))
-        self._commits_data: Dict[str, Any] = {}
 
     # ══════════════════════════════════════════════════════════════════
     #   OPERATIONS TAB
@@ -1474,7 +1561,6 @@ class GitView:
             ("🕐  Load Commit History",   self._load_commits_quick, "default"),
         ])
 
-        # Progress card
         prog_card = tk.Frame(right, bg=C["surface"],
                              highlightbackground=C["border"], highlightthickness=1)
         prog_card.pack(fill=tk.X, pady=(0, 10))
@@ -1493,15 +1579,10 @@ class GitView:
         self.progress_bar = ttk.Progressbar(prog_inner, mode="indeterminate",
                                             length=300)
         self.progress_bar.pack(fill=tk.X, pady=(8, 0))
-        self.progress_det = tk.Label(prog_inner, text="",
-                                     bg=C["surface"], fg=C["accent"],
-                                     font=(FONT_MONO, 8))
-        self.progress_det.pack(anchor=tk.W, pady=(4, 0))
 
-        # Operation log
         log_card = tk.Frame(right, bg=C["surface"],
                             highlightbackground=C["border"], highlightthickness=1)
-        log_card.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        log_card.pack(fill=tk.BOTH, expand=True)
         log_hdr = tk.Frame(log_card, bg=C["surface2"], height=34)
         log_hdr.pack(fill=tk.X)
         log_hdr.pack_propagate(False)
@@ -1550,22 +1631,22 @@ class GitView:
         center.place(relx=0.5, rely=0.5, anchor="center")
 
         tk.Label(center, text="⬡", bg=C["bg"], fg=C["accent"],
-                 font=(FONT_UI, 72)).pack()
+                 font=(FONT_UI, 64)).pack()
         tk.Label(center, text="GitView", bg=C["bg"], fg=C["fg"],
-                 font=(FONT_TITLE, 38, "bold")).pack()
-        tk.Label(center, text=f"Version {APP_VERSION}  ·  GitHub Explorer for Everyone",
+                 font=(FONT_TITLE, 36, "bold")).pack()
+        tk.Label(center, text=f"v{APP_VERSION}  ·  Premium GitHub Explorer",
                  bg=C["bg"], fg=C["fg_muted"], font=(FONT_UI, 11)).pack(pady=(4, 0))
 
-        tk.Frame(center, bg=C["border"], height=1, width=520).pack(pady=22)
+        tk.Frame(center, bg=C["border"], height=1, width=500).pack(pady=20)
 
         info_grid = tk.Frame(center, bg=C["bg"])
         info_grid.pack()
         for i, (k, v) in enumerate([
-            ("Author",    AUTHOR_NAME),
-            ("Origin",    AUTHOR_FROM),
-            ("LinkedIn",  AUTHOR_LI),
-            ("License",   "MIT"),
-            ("Repo",      GITHUB_URL),
+            ("Author",   AUTHOR_NAME),
+            ("Origin",   AUTHOR_FROM),
+            ("LinkedIn", AUTHOR_LI),
+            ("License",  "MIT"),
+            ("GitHub",   GITHUB_URL),
         ]):
             tk.Label(info_grid, text=k, bg=C["bg"], fg=C["fg_subtle"],
                      font=(FONT_UI, 9, "bold"), width=10, anchor=tk.E
@@ -1574,73 +1655,58 @@ class GitView:
                      font=(FONT_UI, 9), anchor=tk.W
                      ).grid(row=i, column=1, pady=3, sticky=tk.W)
 
-        tk.Frame(center, bg=C["border"], height=1, width=520).pack(pady=22)
-
-        features = [
-            ("v3.0 new", "👤 Browse Public Profiles  ·  🔍 User-Scoped Search  ·  🚀 No Token Required"),
-            ("v2.0 new", "🕐 Commit History  ·  ✨ Syntax Highlighting  ·  ⌨️ Keyboard Shortcuts"),
-            ("Fixed",    "⚠️ trace_add()  ·  urllib3 warnings  ·  requests.Session pooling"),
-        ]
-        for label, desc in features:
-            row_f = tk.Frame(center, bg=C["bg"])
-            row_f.pack(pady=3)
-            tk.Label(row_f, text=label, bg=C["accent_subtle"], fg=C["accent"],
-                     font=(FONT_UI, 8, "bold"), padx=8, pady=2).pack(side=tk.LEFT)
-            tk.Label(row_f, text=f"  {desc}", bg=C["bg"], fg=C["fg_muted"],
-                     font=(FONT_UI, 9)).pack(side=tk.LEFT, padx=8)
+        tk.Frame(center, bg=C["border"], height=1, width=500).pack(pady=20)
 
         btn_row = tk.Frame(center, bg=C["bg"])
-        btn_row.pack(pady=22)
-        make_btn(btn_row, "🔗  LinkedIn Profile",
-                 lambda: webbrowser.open(AUTHOR_LI_URL),
-                 style="accent", C=C, font=(FONT_UI, 10)).pack(side=tk.LEFT, padx=6)
-        make_btn(btn_row, "⭐  Star on GitHub",
-                 lambda: webbrowser.open(GITHUB_URL),
-                 style="ghost", C=C, font=(FONT_UI, 10)).pack(side=tk.LEFT, padx=6)
+        btn_row.pack()
+        for lbl, url, style in [
+            ("⭐  Star on GitHub",  GITHUB_URL,         "accent"),
+            ("💼  LinkedIn",        AUTHOR_LI_URL,       "default"),
+            ("🔑  Get Token Free",
+             "https://github.com/settings/tokens/new", "ghost"),
+        ]:
+            make_btn(btn_row, lbl, lambda u=url: webbrowser.open(u),
+                     style=style, C=C, font=(FONT_UI, 9), padx=12
+                     ).pack(side=tk.LEFT, padx=6)
 
-    # ══════════════════════════════════════════════════════════════════
-    #   STATUS BAR
-    # ══════════════════════════════════════════════════════════════════
+    # ── Status Bar ────────────────────────────────────────────────
     def _build_statusbar(self, parent):
         C = self.C
-        bar = tk.Frame(parent, bg=C["status_bar"],
-                       highlightbackground=C["border"], highlightthickness=1,
-                       height=28)
+        bar = tk.Frame(parent, bg=C["status_bar"], height=28)
         bar.pack(fill=tk.X, side=tk.BOTTOM)
         bar.pack_propagate(False)
-        inner = tk.Frame(bar, bg=C["status_bar"])
-        inner.pack(fill=tk.BOTH, expand=True, padx=10)
 
-        self.status_lbl = tk.Label(inner, text="Ready — Connect a GitHub account above to get started",
+        tk.Frame(bar, bg=C["border"], height=1).pack(fill=tk.X, side=tk.TOP)
+
+        inner = tk.Frame(bar, bg=C["status_bar"])
+        inner.pack(fill=tk.BOTH, expand=True, padx=12)
+
+        self.status_lbl = tk.Label(inner, text="  Ready",
                                    bg=C["status_bar"], fg=C["fg_muted"],
                                    font=(FONT_UI, 8))
-        self.status_lbl.pack(side=tk.LEFT, pady=4)
+        self.status_lbl.pack(side=tk.LEFT)
 
-        right = tk.Frame(inner, bg=C["status_bar"])
-        right.pack(side=tk.RIGHT)
-        self.api_lbl = tk.Label(right, text="",
-                                bg=C["status_bar"], fg=C["fg_subtle"],
-                                font=(FONT_UI, 7, "bold"))
-        self.api_lbl.pack(side=tk.RIGHT, padx=(12, 0), pady=4)
+        tk.Label(inner,
+                 text=f"GitView v{APP_VERSION}  ·  {AUTHOR_NAME}  ·  {AUTHOR_FROM}",
+                 bg=C["status_bar"], fg=C["fg_subtle"],
+                 font=(FONT_UI, 7)).pack(side=tk.RIGHT)
 
-    # ══════════════════════════════════════════════════════════════════
-    #   CONTEXT MENU
-    # ══════════════════════════════════════════════════════════════════
+    # ── Context Menu ──────────────────────────────────────────────
     def _build_context_menu(self):
         C = self.C
-        self.ctx = tk.Menu(self.root, tearoff=False,
+        self.ctx = tk.Menu(self.root, tearoff=0,
                            bg=C["surface2"], fg=C["fg"],
                            activebackground=C["tree_select"],
                            activeforeground=C["accent_hover"],
                            font=(FONT_UI, 9), bd=0, relief=tk.FLAT)
-        self.ctx.add_command(label="👁  Preview",          command=self._preview_selected)
+        self.ctx.add_command(label="📄  Preview File",     command=self._preview_selected)
         self.ctx.add_command(label="📥  Download",         command=self._download_selected)
         self.ctx.add_separator()
         self.ctx.add_command(label="✏️   Rename",           command=self._rename_selected)
         self.ctx.add_command(label="🗑  Delete",           command=self._delete_selected)
         self.ctx.add_separator()
         self.ctx.add_command(label="📋  Copy Path",        command=self._copy_path)
-        self.ctx.add_command(label="🌐  Open in Browser", command=self._open_in_browser)
+        self.ctx.add_command(label="🌐  Open in Browser",  command=self._open_in_browser)
 
     def _show_ctx_menu(self, event):
         item = self.tree.identify_row(event.y)
@@ -1667,11 +1733,18 @@ class GitView:
         r.bind("<Control-n>", lambda _: self._create_file_dialog())
         r.bind("<Control-N>", lambda _: self._create_file_dialog())
         r.bind("<space>",     lambda _: self._preview_selected())
+        r.bind("<Control-k>", lambda _: self._focus_search())
+        r.bind("<Control-K>", lambda _: self._focus_search())
 
     def _focus_filter(self):
         self.notebook.select(0)
-        try:
+        if self._filter_entry_ref:
             self._filter_entry_ref.focus_set()
+
+    def _focus_search(self):
+        self.notebook.select(1)
+        try:
+            self.search_entry.focus_set()
         except Exception:
             pass
 
@@ -1686,9 +1759,9 @@ class GitView:
             child.destroy()
         self._build_ui()
         self._add_keyboard_shortcuts()
-        icon  = "☀️" if self.current_theme == "light" else "🌙"
-        label = "Light" if self.current_theme == "light" else "Dark"
         try:
+            icon  = "☀️" if self.current_theme == "light" else "🌙"
+            label = "Light" if self.current_theme == "light" else "Dark"
             self.theme_btn.config(text=f"{icon}  {label}")
         except Exception:
             pass
@@ -1714,7 +1787,7 @@ class GitView:
         self._update_rate_display()
 
     # ══════════════════════════════════════════════════════════════════
-    #   AUTH — TOKEN MODE
+    #   AUTH — TOKEN
     # ══════════════════════════════════════════════════════════════════
     def _toggle_token_vis(self):
         self.show_tok = not self.show_tok
@@ -1725,14 +1798,11 @@ class GitView:
         token = self.token_var.get().strip()
         if not token:
             messagebox.showerror(
-                "GitView — No Token",
+                "No Token",
                 "Please paste your GitHub Personal Access Token.\n\n"
-                "To get one:\n"
-                "  1. Go to github.com → Settings\n"
+                "To get one:\n  1. github.com → Settings\n"
                 "  2. Developer settings → Personal access tokens\n"
-                "  3. Generate new token (Classic) with 'repo' scope\n"
-                "  4. Copy and paste here\n\n"
-                "Alternatively switch to 'Browse Public Profile' mode — no token needed!")
+                "  3. Generate new token (Classic) with 'repo' scope")
             return
         self.token = token
         self.auth_mode = "token"
@@ -1752,77 +1822,8 @@ class GitView:
                     self.root.after(0, lambda: self._on_token_connected(r.json()))
                 elif r.status_code == 401:
                     self.root.after(0, lambda: self._on_conn_fail(
-                        "Invalid token.\n\nMake sure you copied it correctly — "
-                        "it starts with 'ghp_' or 'github_pat_'."))
-                else:
-                    msg = r.json().get("message", "Unknown error")
-                    self.root.after(0, lambda: self._on_conn_fail(msg))
-            except Exception as e:
-                self.root.after(0, self.progress_bar.stop)
-                self.root.after(0, lambda: self._on_conn_fail(
-                    f"Network error: {e}\n\nCheck your internet connection and try again."))
-
-        threading.Thread(target=_work, daemon=True).start()
-
-    def _on_token_connected(self, data: Dict):
-        self.username = data["login"]
-        self._show_user_connected(data, mode="token")
-        self.connect_btn.config(state=tk.NORMAL, text="⟳  Reconnect")
-        self.disconnect_btn.pack(side=tk.LEFT, padx=(4, 0))
-        self._save_config()
-        self._log_operation(f"[Token] Connected as {self.username}")
-        self._load_repos()
-
-    # ══════════════════════════════════════════════════════════════════
-    #   AUTH — PUBLIC MODE (username / URL)
-    # ══════════════════════════════════════════════════════════════════
-    def _connect_public(self):
-        raw = self.public_var.get().strip()
-        if not raw:
-            messagebox.showerror(
-                "GitView — No Username",
-                "Please type a GitHub username or paste a GitHub profile URL.\n\n"
-                "Examples:\n"
-                "  • torvalds\n"
-                "  • https://github.com/torvalds\n"
-                "  • github.com/microsoft")
-            return
-        username = parse_github_input(raw)
-        if not username:
-            messagebox.showerror(
-                "GitView — Invalid Input",
-                f"Could not find a valid GitHub username in:\n  {raw}\n\n"
-                "Please enter just the username (e.g. 'torvalds') or a full GitHub URL.")
-            return
-
-        # Remove auth header for public browsing
-        self.session.headers.pop("Authorization", None)
-        self.token = None
-        self.auth_mode = "public"
-        self.rate_limit     = 60
-        self.rate_remaining = 60
-
-        self._set_status(f"Loading public profile: {username}…")
-        self.progress_bar.start()
-        self.public_connect_btn.config(state=tk.DISABLED, text="Loading…")
-
-        def _work():
-            try:
-                r = resilient_get(self.session,
-                                  f"{self.api_base}/users/{username}", timeout=12)
-                self._parse_rate_limit(r)
-                self.root.after(0, self.progress_bar.stop)
-                if r.status_code == 200:
-                    self.root.after(0, lambda: self._on_public_connected(r.json()))
-                elif r.status_code == 404:
-                    self.root.after(0, lambda: self._on_conn_fail(
-                        f"User '{username}' not found on GitHub.\n\n"
-                        "Double-check the spelling — GitHub usernames are case-insensitive."))
-                elif r.status_code == 403:
-                    self.root.after(0, lambda: self._on_conn_fail(
-                        "GitHub API rate limit reached (60 req/hour for unauthenticated users).\n\n"
-                        "To get 5,000 req/hour:\n"
-                        "  • Switch to 'Use Token' mode and connect with your GitHub token."))
+                        "Invalid token.\n\nMake sure you copied it correctly —\n"
+                        "it should start with 'ghp_' or 'github_pat_'."))
                 else:
                     msg = r.json().get("message", "Unknown error")
                     self.root.after(0, lambda: self._on_conn_fail(msg))
@@ -1833,329 +1834,253 @@ class GitView:
 
         threading.Thread(target=_work, daemon=True).start()
 
+    def _on_token_connected(self, data: Dict):
+        self.username = data["login"]
+        self._show_user_connected(data, mode="token")
+        self.connect_btn.config(state=tk.NORMAL, text="⟳  Reconnect")
+        self.disconnect_btn.pack(side=tk.LEFT, padx=(4, 0))
+        self._save_config()
+        self._log_operation(f"[Token] Connected as @{self.username}")
+        self._update_search_banner()
+        self._load_repos()
+
+    def _on_conn_fail(self, msg: str):
+        self.token = None
+        self.session.headers.pop("Authorization", None)
+        self.connect_btn.config(state=tk.NORMAL, text="  ⚡  Connect  ")
+        messagebox.showerror("Connection Failed", msg)
+        self._set_status("Connection failed", "err")
+
+    # ══════════════════════════════════════════════════════════════════
+    #   AUTH — PUBLIC
+    # ══════════════════════════════════════════════════════════════════
+    def _connect_public(self):
+        raw = self.public_var.get().strip()
+        if not raw:
+            messagebox.showerror(
+                "No Username",
+                "Please type a GitHub username or profile URL.\n\n"
+                "Examples:\n  • torvalds\n"
+                "  • https://github.com/torvalds\n"
+                "  • github.com/microsoft")
+            return
+        username = parse_github_input(raw)
+        if not username:
+            messagebox.showerror(
+                "Invalid Input",
+                f"Could not find a valid GitHub username in:\n  {raw}\n\n"
+                "Please enter just the username (e.g. 'torvalds') or a GitHub URL.")
+            return
+
+        self.session.headers.pop("Authorization", None)
+        self.token = None
+        self.auth_mode = "public"
+        self.rate_limit     = 60
+        self.rate_remaining = 60
+        self._set_status(f"Loading public profile: {username}…")
+        self.progress_bar.start()
+        self.public_connect_btn.config(state=tk.DISABLED, text="Loading…")
+
+        def _work():
+            try:
+                r = resilient_get(self.session, f"{self.api_base}/users/{username}",
+                                  timeout=12)
+                self._parse_rate_limit(r)
+                self.root.after(0, self.progress_bar.stop)
+                if r.status_code == 200:
+                    self.root.after(0, lambda: self._on_public_connected(r.json()))
+                elif r.status_code == 404:
+                    self.root.after(0, lambda: self._on_pub_fail(
+                        f"User '{username}' not found on GitHub.\n\n"
+                        "Check the spelling and try again."))
+                else:
+                    msg = r.json().get("message", "Unknown error")
+                    self.root.after(0, lambda: self._on_pub_fail(msg))
+            except Exception as e:
+                self.root.after(0, self.progress_bar.stop)
+                self.root.after(0, lambda: self._on_pub_fail(f"Network error: {e}"))
+
+        threading.Thread(target=_work, daemon=True).start()
+
     def _on_public_connected(self, data: Dict):
         self.username = data["login"]
         self._show_user_connected(data, mode="public")
         self.public_connect_btn.config(state=tk.NORMAL, text="  🚀  Browse  ")
         self._save_config()
-        self._log_operation(f"[Public] Browsing {self.username}")
+        self._log_operation(f"[Public] Browsing @{self.username}")
+        self._update_search_banner()
         self._load_repos()
 
-    def _show_user_connected(self, data: Dict = None, mode: str = "token"):
-        C = self.C
-        if data is None:
-            data = {}
-        name    = data.get("name") or self.username or "Unknown"
-        repos_n = data.get("public_repos", 0)
-        follows = data.get("followers", 0)
+    def _on_pub_fail(self, msg: str):
+        self.public_connect_btn.config(state=tk.NORMAL, text="  🚀  Browse  ")
+        messagebox.showerror("Browse Failed", msg)
+        self._set_status("Browse failed", "err")
 
-        self.user_name_lbl.config(text=f"✓  {self.username}", fg=C["success"])
-        self.user_meta_lbl.config(text=name, fg=C["fg_muted"])
-        self.conn_badge.config(
-            text=f"★ {repos_n} repos  ·  {follows:,} followers",
-            fg=C["fg_subtle"])
-        if mode == "token":
-            badge_txt = "🔑  Authenticated — Full Access"
-            badge_fg  = C["success"]
-        else:
-            badge_txt = "👁  Read-Only Public Access"
-            badge_fg  = C["warning"]
-        self.auth_badge.config(text=badge_txt, fg=badge_fg)
-        self.avatar_lbl.config(text="◉", fg=C["success"])
-        self._set_status(f"Connected: {self.username}  ({mode} mode)", "ok")
-        self._update_rate_display()
-
-    # ══════════════════════════════════════════════════════════════════
-    #   DISCONNECT
-    # ══════════════════════════════════════════════════════════════════
     def _disconnect(self):
         self.token    = None
         self.username = None
+        self.session.headers.pop("Authorization", None)
+        self.repo_data.clear()
+        self.repo_combo["values"] = []
+        self.repo_combo.set("")
         self.current_repo      = None
         self.current_repo_full = None
-        self.repo_data = {}
-        self.session.headers.pop("Authorization", None)
-        self.token_var.set("")
-        self.repo_combo["values"] = []
-        self.repo_var.set("")
-        self.branch_combo["values"] = []
-        self.branch_var.set("main")
+        self.current_path      = ""
         self.tree.delete(*self.tree.get_children())
-        C = self.C
-        self.user_name_lbl.config(text="Not Connected",                fg=C["fg_muted"])
-        self.user_meta_lbl.config(text="Choose a method above and connect", fg=C["fg_subtle"])
-        self.conn_badge.config(text="",   fg=C["fg_subtle"])
-        self.auth_badge.config(text="",   fg=C["fg_subtle"])
-        self.avatar_lbl.config(text="○",  fg=C["fg_subtle"])
-        self.connect_btn.config(text="  ⚡  Connect  ")
+        self.user_name_lbl.config(text="Not Connected")
+        self.user_meta_lbl.config(text="Choose Token or Public mode above")
+        self.conn_badge.config(text="")
+        self.auth_badge.config(text="")
+        self.avatar_lbl.config(text="○")
         self.disconnect_btn.pack_forget()
-        self.repo_meta_lbl.config(text="")
-        self.repo_desc_lbl.config(text="")
+        self.connect_btn.config(text="  ⚡  Connect  ")
         self.rate_remaining = 60
         self.rate_limit     = 60
-        self._set_status("Disconnected — Connect again to continue")
+        self._update_rate_display()
+        self._update_search_banner()
+        self._set_status("Disconnected")
         self._log_operation("Disconnected")
-        self._save_config()
 
-    # ══════════════════════════════════════════════════════════════════
-    #   CONNECTION FAILURE
-    # ══════════════════════════════════════════════════════════════════
-    def _on_conn_fail(self, msg: str):
+    def _update_search_banner(self):
         try:
-            self.connect_btn.config(state=tk.NORMAL, text="  ⚡  Connect  ")
-            self.public_connect_btn.config(state=tk.NORMAL, text="  🚀  Browse  ")
-        except Exception:
-            pass
-        self._set_status("Connection failed", "err")
-        messagebox.showerror("GitView — Connection Error",
-                             f"Could not connect to GitHub.\n\n{msg}")
-
-    # ══════════════════════════════════════════════════════════════════
-    #   CONFIG PERSISTENCE
-    # ══════════════════════════════════════════════════════════════════
-    def _save_config(self):
-        try:
-            cfg = {
-                "version":      3,
-                "token":        self.token or "",
-                "last_username": self.username or "",
-                "auth_mode":    self.auth_mode,
-                "theme":        self.current_theme,
-                "recent_repos": list(self.recent_repos),
-                "pinned_repos": self.pinned_repos,
-            }
-            CONFIG_FILE.write_text(json.dumps(cfg, indent=2))
-        except Exception:
-            pass
-
-    def _load_saved_config(self):
-        try:
-            if not CONFIG_FILE.exists():
-                return
-            cfg = json.loads(CONFIG_FILE.read_text())
-            # Theme
-            saved_theme = cfg.get("theme", "dark")
-            if saved_theme != self.current_theme:
-                self.current_theme = saved_theme
-                self.C = LIGHT if saved_theme == "light" else DARK
-                self._apply_styles()
-            # Recent/pinned
-            for r in reversed(cfg.get("recent_repos", [])):
-                self.recent_repos.appendleft(r)
-            self.pinned_repos = cfg.get("pinned_repos", [])
-            # Auto-connect
-            mode = cfg.get("auth_mode", "token")
-            if mode == "token" and cfg.get("token"):
-                self.auth_mode = "token"
-                self.token_var.set(cfg["token"])
-                self.root.after(800, self._connect_token)
-            elif mode == "public" and cfg.get("last_username"):
-                self.auth_mode = "public"
-                self.public_var.set(cfg["last_username"])
-                self._switch_to_public()
-                self.root.after(800, self._connect_public)
+            C = self.C
+            if self.username:
+                mode_str = ("🔑 Token (5000 req/hr)" if self.auth_mode == "token"
+                            else "👤 Public (60 req/hr)")
+                self._banner_lbl.config(
+                    text=f"✅  Searching @{self.username}  ·  Mode: {mode_str}  "
+                         f"·  Ctrl+K to focus search",
+                    bg=C["success_subtle"], fg=C["success"])
+                self.search_banner.config(bg=C["success_subtle"])
+            else:
+                self._banner_lbl.config(
+                    text="ℹ️   Connect to a GitHub user first, then search across all their repositories.",
+                    bg=C["warning_subtle"], fg=C["warning"])
+                self.search_banner.config(bg=C["warning_subtle"])
         except Exception:
             pass
 
     # ══════════════════════════════════════════════════════════════════
-    #   REPO MANAGEMENT
+    #   USER CARD
+    # ══════════════════════════════════════════════════════════════════
+    def _show_user_connected(self, data: Dict = None, mode: str = "token"):
+        if data is None:
+            return
+        C = self.C
+        login    = data.get("login", "")
+        name     = data.get("name") or login
+        repos    = data.get("public_repos", 0)
+        followers= data.get("followers", 0)
+        bio      = (data.get("bio") or "")[:60]
+
+        self.user_name_lbl.config(text=name, fg=C["fg"])
+        self.user_meta_lbl.config(
+            text=f"@{login}  ·  {repos} repos  ·  {followers:,} followers",
+            fg=C["fg_muted"])
+        self.conn_badge.config(text=bio, fg=C["fg_subtle"])
+
+        badge_text  = "🔑  TOKEN MODE"  if mode == "token"  else "👤  PUBLIC MODE"
+        badge_color = C["badge_token"]   if mode == "token"  else C["badge_public"]
+        self.auth_badge.config(text=badge_text, fg=badge_color)
+        self.avatar_lbl.config(text="●", fg=C["success"])
+        self._update_rate_display()
+
+    # ══════════════════════════════════════════════════════════════════
+    #   REPOS & BRANCHES
     # ══════════════════════════════════════════════════════════════════
     def _load_repos(self):
         if not self.username:
-            messagebox.showwarning("GitView", "Please connect first.")
             return
-        self._set_status("Loading repositories…")
+        self._set_status(f"Loading repositories for @{self.username}…")
         self.progress_bar.start()
-        self.progress_var.set("Loading repository list…")
-        self._user_search_built = False
 
         def _work():
             try:
                 repos = []
                 page  = 1
-                # Authenticated → /user/repos  |  Public → /users/{name}/repos
-                if self.auth_mode == "token" and self.token:
-                    base_url = f"{self.api_base}/user/repos"
-                else:
-                    base_url = f"{self.api_base}/users/{self.username}/repos"
-
                 while True:
-                    r = resilient_get(self.session, base_url,
-                                      params={"per_page": 100, "page": page,
-                                              "sort": "updated"},
-                                      timeout=15)
-                    self._parse_rate_limit(r)
-                    if r.status_code == 200:
-                        batch = r.json()
-                        if not batch:
-                            break
-                        repos.extend(batch)
-                        page += 1
+                    if self.auth_mode == "token":
+                        url = f"{self.api_base}/user/repos"
                     else:
+                        url = f"{self.api_base}/users/{self.username}/repos"
+                    r = resilient_get(self.session, url,
+                                      params={"per_page": 100, "page": page,
+                                              "sort": "updated", "type": "all"},
+                                      timeout=20)
+                    self._parse_rate_limit(r)
+                    if r.status_code != 200:
                         break
-
-                self.repo_data = {}
-                for repo in repos:
-                    owner = repo.get("owner", {}).get("login") or self.username
-                    key   = f"{owner}/{repo['name']}"
-                    self.repo_data[key] = repo
-
-                names = self._build_repo_list_names()
-                self.root.after(0, lambda: self._update_repo_list(names))
-                self.root.after(0, self.progress_bar.stop)
-                self.root.after(0, lambda: self.progress_var.set("No active operations"))
+                    batch = r.json()
+                    if not batch:
+                        break
+                    repos.extend(batch)
+                    if len(batch) < 100:
+                        break
+                    page += 1
+                self.root.after(0, lambda: self._on_repos_loaded(repos))
             except Exception as e:
                 self.root.after(0, self.progress_bar.stop)
-                self.root.after(0, lambda: self._set_status(f"Error loading repos: {e}", "err"))
+                self.root.after(0, lambda: self._set_status(f"Repos error: {e}", "err"))
 
         threading.Thread(target=_work, daemon=True).start()
 
-    def _build_repo_list_names(self) -> List[str]:
-        """Return sorted list of repo names with pinned repos on top."""
-        all_names = sorted(self.repo_data.keys())
-        pinned    = [n for n in self.pinned_repos if n in all_names]
-        rest      = [n for n in all_names if n not in pinned]
-        return pinned + rest
-
-    def _update_repo_list(self, repos: List[str]):
-        self.repo_combo["values"] = repos
-        if repos:
-            # Prefer recently used
-            first = repos[0]
-            for r in self.recent_repos:
-                if r in repos:
-                    first = r
-                    break
-            self.repo_combo.set(first)
-            self._on_repo_select()
-        self._set_status(f"Loaded {len(repos)} repositories", "ok")
-        self.api_lbl.config(text=f"Repos: {len(repos)}")
-        self._log_operation(f"Loaded {len(repos)} repositories for {self.username}")
-
-    def _on_repo_select(self, _=None):
-        sel = self.repo_var.get()
-        if sel and "/" in sel:
-            parts = sel.split("/", 1)
-            self.username          = parts[0]
-            self.current_repo      = parts[1]
-            self.current_repo_full = sel
-            self.current_path      = ""
-            if sel in self.recent_repos:
-                self.recent_repos.remove(sel)
-            self.recent_repos.appendleft(sel)
-            self._save_config()
-            self._update_repo_meta()
-            self._load_branches()
-            self._load_dir("")
-
-    def _update_repo_meta(self):
-        if not self.current_repo_full:
-            return
-        rd = self.repo_data.get(self.current_repo_full, {})
-        if not rd:
-            return
-        C     = self.C
-        stars = rd.get("stargazers_count", 0)
-        forks = rd.get("forks_count", 0)
-        lang  = rd.get("language") or "—"
-        priv  = "🔒 Private" if rd.get("private") else "🌐 Public"
-        self.repo_meta_lbl.config(
-            fg=C["fg_muted"],
-            text=f"★ {stars:,}  🍴 {forks:,}  {lang}  ·  {priv}")
-        desc = rd.get("description") or ""
-        self.repo_desc_lbl.config(fg=C["fg_subtle"], text=desc[:120])
-
-    def _pin_current_repo(self):
-        if not self.current_repo_full:
-            self._set_status("No repository selected", "warn")
-            return
-        repo = self.current_repo_full
-        if repo in self.pinned_repos:
-            self.pinned_repos.remove(repo)
-            self._set_status(f"Unpinned {repo}", "info")
-        else:
-            self.pinned_repos.insert(0, repo)
-            self._set_status(f"Pinned {repo} to top", "ok")
-        # Refresh list
+    def _on_repos_loaded(self, repos: List[Dict]):
+        self.progress_bar.stop()
+        self.repo_data.clear()
+        for rd in repos:
+            key = rd.get("full_name", rd.get("name", ""))
+            self.repo_data[key] = rd
         names = self._build_repo_list_names()
         self.repo_combo["values"] = names
-        self._save_config()
-
-    def _load_starred(self):
-        if not self.username:
-            messagebox.showwarning("GitView", "Please connect first.")
-            return
-        self._set_status("Loading starred repos…")
-        self.progress_bar.start()
-
-        def _work():
-            try:
-                endpoint = (f"{self.api_base}/user/starred"
-                            if self.auth_mode == "token" else
-                            f"{self.api_base}/users/{self.username}/starred")
-                r = resilient_get(self.session, endpoint,
-                                  params={"per_page": 100}, timeout=12)
-                self._parse_rate_limit(r)
-                self.root.after(0, self.progress_bar.stop)
-                if r.status_code == 200:
-                    repos = [f"{i['owner']['login']}/{i['name']}" for i in r.json()]
-                    self.root.after(0, lambda: self._show_starred_picker(repos))
-                else:
-                    self.root.after(0, lambda: self._set_status("Failed to load starred", "err"))
-            except Exception as e:
-                self.root.after(0, self.progress_bar.stop)
-                self.root.after(0, lambda: self._set_status(str(e), "err"))
-
-        threading.Thread(target=_work, daemon=True).start()
-
-    def _show_starred_picker(self, repos: List[str]):
-        C = self.C
-        dlg = tk.Toplevel(self.root)
-        dlg.title("GitView — Starred Repositories")
-        dlg.geometry("420x520")
-        dlg.configure(bg=C["bg"])
-        dlg.resizable(True, True)
-
-        tk.Label(dlg, text="⭐  Starred Repositories",
-                 bg=C["bg"], fg=C["fg"],
-                 font=(FONT_UI, 12, "bold")).pack(padx=16, pady=12, anchor=tk.W)
-
-        lb_frame = tk.Frame(dlg, bg=C["surface"],
-                            highlightbackground=C["border"], highlightthickness=1)
-        lb_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 10))
-        lb = tk.Listbox(lb_frame, bg=C["surface"], fg=C["fg"],
-                        font=(FONT_MONO, 9), selectbackground=C["tree_select"],
-                        selectforeground=C["accent_hover"],
-                        relief=tk.FLAT, highlightthickness=0,
-                        activestyle="none")
-        sb = ttk.Scrollbar(lb_frame, command=lb.yview)
-        lb.configure(yscrollcommand=sb.set)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        lb.pack(fill=tk.BOTH, expand=True)
-        for r in repos:
-            lb.insert(tk.END, f"  {r}")
-
-        def _pick():
-            if not lb.curselection():
-                return
-            chosen = repos[lb.curselection()[0]]
-            dlg.destroy()
-            if chosen not in self.repo_data:
-                self.repo_data[chosen] = {"name": chosen.split("/")[-1], "private": False}
-            vals = sorted(set(list(self.repo_combo["values"]) + [chosen]))
-            self.repo_combo["values"] = vals
-            self.repo_combo.set(chosen)
+        if names:
+            prev = self.current_repo_full
+            if prev and prev in names:
+                self.repo_combo.set(prev)
+            else:
+                self.repo_combo.set(names[0])
             self._on_repo_select()
+        self._set_status(f"Loaded {len(repos)} repositories", "ok")
+        self._log_operation(f"Loaded {len(repos)} repos for @{self.username}")
 
-        btn_f = tk.Frame(dlg, bg=C["bg"])
-        btn_f.pack(fill=tk.X, padx=16, pady=(0, 12))
-        make_btn(btn_f, "Open Repository", _pick, style="accent", C=C,
-                 font=(FONT_UI, 10, "bold"), pady=7).pack(fill=tk.X)
-        lb.bind("<Double-1>", lambda _: _pick())
+        self._show_welcome_info()
 
-    # ══════════════════════════════════════════════════════════════════
-    #   BRANCHES
-    # ══════════════════════════════════════════════════════════════════
+    def _build_repo_list_names(self) -> List[str]:
+        pinned   = [k for k in self.pinned_repos if k in self.repo_data]
+        unpinned = [k for k in self.repo_data if k not in pinned]
+        return pinned + unpinned
+
+    def _show_welcome_info(self):
+        count = len(self.repo_data)
+        self._show_info("📦",
+                        f"{count} repositories loaded",
+                        f"@{self.username}  ·  Select a repository above to explore")
+
+    def _on_repo_select(self, _=None):
+        key = self.repo_var.get()
+        if not key or key not in self.repo_data:
+            return
+        rd = self.repo_data[key]
+        self.current_repo      = rd.get("name", key.split("/")[-1])
+        self.current_repo_full = key
+        self.current_path      = ""
+        self._update_repo_meta()
+        self._load_branches()
+        self._log_operation(f"Selected repo: {key}")
+
+    def _update_repo_meta(self):
+        key = self.repo_var.get()
+        if key not in self.repo_data:
+            return
+        rd   = self.repo_data[key]
+        lang = rd.get("language") or "—"
+        stars= rd.get("stargazers_count", 0)
+        forks= rd.get("forks_count", 0)
+        upd  = relative_time(rd.get("updated_at", ""))
+        self.repo_meta_lbl.config(
+            text=f"★ {stars:,}  🍴 {forks:,}  {lang}  ·  {upd}")
+        self.repo_desc_lbl.config(
+            text=(rd.get("description") or "No description")[:120])
+
     def _load_branches(self):
         if not self.current_repo:
             return
@@ -2165,30 +2090,29 @@ class GitView:
                 r = resilient_get(
                     self.session,
                     f"{self.api_base}/repos/{self.username}/{self.current_repo}/branches",
-                    timeout=10)
+                    params={"per_page": 100}, timeout=15)
                 self._parse_rate_limit(r)
                 if r.status_code == 200:
                     branches = [b["name"] for b in r.json()]
-                    self.root.after(0, lambda: self._update_branches(branches))
+                    self.root.after(0, lambda: self._on_branches_loaded(branches))
             except Exception:
                 pass
 
         threading.Thread(target=_work, daemon=True).start()
 
-    def _update_branches(self, branches: List[str]):
+    def _on_branches_loaded(self, branches: List[str]):
         self.branch_combo["values"] = branches
-        if "main" in branches:
-            self.branch_var.set("main")
-        elif "master" in branches:
-            self.branch_var.set("master")
+        rd = self.repo_data.get(self.current_repo_full or "", {})
+        default = rd.get("default_branch", "main")
+        if default in branches:
+            self.branch_var.set(default)
         elif branches:
             self.branch_var.set(branches[0])
-        self.current_branch = self.branch_var.get()
+        self._load_dir("")
 
-    def _on_branch_change(self, _=None):
-        if self.current_repo:
-            self.current_path = ""
-            self._load_dir("")
+    def _on_branch_select(self, _=None):
+        self.current_path = ""
+        self._load_dir("")
 
     # ══════════════════════════════════════════════════════════════════
     #   DIRECTORY NAVIGATION
@@ -2196,140 +2120,123 @@ class GitView:
     def _load_dir(self, path: str):
         if not self.current_repo:
             return
-        self._set_status(f"Loading: {path or '/'}")
-        self.progress_bar.start()
+        self.current_path = path
+        branch = self.branch_var.get()
+        self.path_lbl.config(text=f"/{path}" if path else "/")
+        self._show_loading_info()
+        self.tree.delete(*self.tree.get_children())
+        self.filter_var.set("")
 
         def _work():
             try:
-                branch = self.branch_var.get()
-                url    = (f"{self.api_base}/repos/{self.username}/"
-                          f"{self.current_repo}/contents/{path}")
-                r = resilient_get(self.session, url,
-                                  params={"ref": branch} if branch else {},
-                                  timeout=15)
+                r = resilient_get(
+                    self.session,
+                    f"{self.api_base}/repos/{self.username}/"
+                    f"{self.current_repo}/contents/{path}",
+                    params={"ref": branch} if branch else {},
+                    timeout=20)
                 self._parse_rate_limit(r)
-                self.root.after(0, self.progress_bar.stop)
                 if r.status_code == 200:
-                    data  = r.json()
-                    items = data if isinstance(data, list) else [data]
-                    self.root.after(0, lambda: self._populate_tree(items, path))
-                    self.root.after(0, lambda: self._set_status(
-                        f"Loaded {len(items)} items in /{path or ''}", "ok"))
+                    items = r.json()
+                    if not isinstance(items, list):
+                        items = [items]
+                    self.root.after(0, lambda: self._populate_tree(items))
                 elif r.status_code == 404:
-                    self.root.after(0, lambda: self._set_status(
-                        f"Path not found: {path}", "err"))
-                elif r.status_code == 403:
-                    self.root.after(0, lambda: self._set_status(
-                        "Rate limit reached — try again in a minute or use a token", "err"))
+                    self.root.after(0, lambda: self._show_info(
+                        "⚠️", "Path not found",
+                        f"The path '{path}' doesn't exist on branch '{branch}'"))
                 else:
                     msg = r.json().get("message", "Error loading directory")
                     self.root.after(0, lambda: self._set_status(msg, "err"))
             except Exception as e:
-                self.root.after(0, self.progress_bar.stop)
                 self.root.after(0, lambda: self._set_status(str(e), "err"))
 
         threading.Thread(target=_work, daemon=True).start()
 
-    def _populate_tree(self, contents: List[Dict], path: str):
-        self.tree.delete(*self.tree.get_children())
-        dirs  = sorted([i for i in contents if i.get("type") == "dir"],
-                       key=lambda x: x["name"].lower())
-        files = sorted([i for i in contents if i.get("type") == "file"],
-                       key=lambda x: x["name"].lower())
-        self.all_items = {"dirs": dirs, "files": files}
-
-        for item in dirs:
-            self.tree.insert("", "end",
-                             text=f"  {item['name']}",
-                             values=("📁", "Folder", "—"),
-                             tags=("dir",))
-        for item in files:
-            icon = file_icon(item["name"])
-            size = fmt_size(item.get("size", 0))
-            self.tree.insert("", "end",
-                             text=f"  {item['name']}",
-                             values=(icon, "File", size),
-                             tags=("file",))
-
-        self.tree.tag_configure("dir",  foreground=self.C["tag_dir"])
-        self.tree.tag_configure("file", foreground=self.C["tag_file"])
-
-        self.current_path = path
-        self._update_path_display()
+    def _populate_tree(self, items: List[Dict]):
+        self.all_items = {"dirs": [], "files": []}
+        for item in items:
+            if item.get("type") == "dir":
+                self.all_items["dirs"].append(item)
+            else:
+                self.all_items["files"].append(item)
+        self._render_tree(self.all_items["dirs"] + self.all_items["files"])
+        total = len(items)
         self.file_count_lbl.config(
-            text=f"{len(dirs)} folder{'s' if len(dirs)!=1 else ''}  ·  {len(files)} file{'s' if len(files)!=1 else ''}")
-        self.sort_col     = "name"
-        self.sort_reverse = False
-        self.tree.heading("#0", text="  Name ▲")
+            text=f"{len(self.all_items['dirs'])}  folders  "
+                 f"·  {len(self.all_items['files'])}  files")
+        self._set_status(
+            f"Loaded {total} item{'s' if total != 1 else ''}"
+            f"  ·  {self.current_repo}/{self.current_path or ''}", "ok")
+        self.info_frame.place_forget()
 
-    def _update_path_display(self):
-        for w in self.path_frame.winfo_children():
-            w.destroy()
-        C     = self.C
-        parts = (["root"] + [p for p in self.current_path.split("/") if p]
-                 if self.current_path else ["root"])
-        for i, part in enumerate(parts):
-            is_last = (i == len(parts) - 1)
-            display = f" {self.current_repo} " if part == "root" else f" {part} "
-            lbl = tk.Label(self.path_frame, text=display,
-                           bg=C["surface"],
-                           fg=C["accent"] if not is_last else C["fg"],
-                           font=(FONT_MONO, 10, "bold" if is_last else "normal"),
-                           cursor="hand2" if not is_last else "")
-            lbl.pack(side=tk.LEFT)
-            if not is_last:
-                nav_path = "" if i == 0 else "/".join(parts[1:i+1])
-                def _go(_, p=nav_path):
-                    self.current_path = p
-                    self._load_dir(p)
-                lbl.bind("<Button-1>", _go)
-                tk.Label(self.path_frame, text=" / ",
-                         bg=C["surface"], fg=C["fg_subtle"],
-                         font=(FONT_MONO, 10)).pack(side=tk.LEFT)
+    def _render_tree(self, items: List[Dict]):
+        self.tree.delete(*self.tree.get_children())
+        C = self.C
+        for item in items:
+            is_dir  = item.get("type") == "dir"
+            name    = item.get("name", "")
+            size    = item.get("size", 0)
+            icon    = "📁" if is_dir else file_icon(name)
+            size_str= "—" if is_dir else fmt_size(size)
+            kind    = "Folder" if is_dir else "File"
+            self.tree.insert("", "end",
+                             text=f"  {name}",
+                             values=(icon, kind, size_str),
+                             tags=("dir" if is_dir else "file",))
+        self.tree.tag_configure("dir",  foreground=C["tag_dir"])
+        self.tree.tag_configure("file", foreground=C["tag_file"])
 
-    def _on_tree_double_click(self, _=None):
+    def _show_loading_info(self):
+        self._show_info("⏳", "Loading…", "Fetching directory contents from GitHub")
+
+    def _show_info(self, icon: str, main: str, extra: str):
+        self.tree.delete(*self.tree.get_children())
+        self.info_lbl.config(text=icon)
+        self.info_main.config(text=main)
+        self.info_extra.config(text=extra)
+        self.info_frame.place(relx=0.5, rely=0.5, anchor="center")
+
+    def _on_tree_double(self, _=None):
         sel = self.tree.selection()
         if not sel:
             return
         item = sel[0]
         vals = self.tree.item(item, "values")
         name = self.tree.item(item, "text").strip()
-        if vals[1] == "Folder":
+        if vals and vals[1] == "Folder":
             new_path = f"{self.current_path}/{name}" if self.current_path else name
-            self.current_path = new_path
             self._load_dir(new_path)
         else:
             self._preview_selected()
 
-    def _on_tree_select(self, _=None):
-        sel = self.tree.selection()
-        if not sel:
-            return
-        item = sel[0]
-        name = self.tree.item(item, "text").strip()
-        vals = self.tree.item(item, "values")
-        icon = vals[0] if vals else ""
-        size = vals[2] if len(vals) > 2 else ""
-        self.info_icon.config(text=icon, font=(FONT_UI, 32))
-        self.info_name.config(text=name)
-        is_dir = vals[1] == "Folder" if len(vals) > 1 else False
-        self.info_meta.config(text="Directory" if is_dir else size)
-        lang = lang_from_name(name) if not is_dir else ""
-        self.info_extra.config(text=lang.capitalize() if lang and lang != "text" else "")
-
     def _go_home(self):
-        self.current_path = ""
-        self._load_dir("")
+        if self.current_repo:
+            self.current_path = ""
+            self._load_dir("")
 
     def _go_up(self):
-        if self.current_path:
-            parts = self.current_path.rsplit("/", 1)
-            self.current_path = parts[0] if len(parts) > 1 else ""
-            self._load_dir(self.current_path)
+        if not self.current_path:
+            return
+        parent = "/".join(self.current_path.rsplit("/", 1)[:-1])
+        self._load_dir(parent)
 
-    # ══════════════════════════════════════════════════════════════════
-    #   SORT
-    # ══════════════════════════════════════════════════════════════════
+    def _refresh_dir(self):
+        self._load_dir(self.current_path)
+
+    def _apply_filter(self):
+        query = self.filter_var.get().lower()
+        if not query:
+            self._render_tree(self.all_items["dirs"] + self.all_items["files"])
+            self.file_count_lbl.config(text="")
+            return
+        filtered = (
+            [i for i in self.all_items["dirs"]  if query in i["name"].lower()] +
+            [i for i in self.all_items["files"] if query in i["name"].lower()])
+        self._render_tree(filtered)
+        self.file_count_lbl.config(
+            text=f"Filter: {len(filtered)} match{'es' if len(filtered) != 1 else ''}")
+
     def _sort_by(self, col: str):
         if self.sort_col == col:
             self.sort_reverse = not self.sort_reverse
@@ -2337,88 +2244,80 @@ class GitView:
             self.sort_col     = col
             self.sort_reverse = False
 
-        dirs  = list(self.all_items["dirs"])
-        files = list(self.all_items["files"])
-
-        def key(item):
-            if col == "name": return item.get("name", "").lower()
+        def key_fn(item):
+            if col == "name": return item.get("name","").lower()
+            if col == "kind": return item.get("type","")
             if col == "size": return item.get("size", 0)
-            if col == "type": return item.get("type", "")
-            return item.get("name", "").lower()
+            return ""
 
-        dirs.sort( key=key, reverse=self.sort_reverse)
-        files.sort(key=key, reverse=self.sort_reverse)
+        dirs  = sorted(self.all_items["dirs"],  key=key_fn, reverse=self.sort_reverse)
+        files = sorted(self.all_items["files"], key=key_fn, reverse=self.sort_reverse)
+        self._render_tree(dirs + files)
 
-        arrow = "▲" if not self.sort_reverse else "▼"
-        self.tree.heading("#0",   text=f"  Name {arrow}" if col == "name" else "  Name")
-        self.tree.heading("type", text=f"Type {arrow}"   if col == "type" else "Type")
-        self.tree.heading("size", text=f"Size {arrow}"   if col == "size" else "Size")
-
-        self.tree.delete(*self.tree.get_children())
-        for item in dirs:
-            self.tree.insert("", "end", text=f"  {item['name']}",
-                             values=("📁", "Folder", "—"), tags=("dir",))
-        for item in files:
-            self.tree.insert("", "end", text=f"  {item['name']}",
-                             values=(file_icon(item["name"]), "File",
-                                     fmt_size(item.get("size", 0))),
-                             tags=("file",))
-        self.tree.tag_configure("dir",  foreground=self.C["tag_dir"])
-        self.tree.tag_configure("file", foreground=self.C["tag_file"])
-
-    # ══════════════════════════════════════════════════════════════════
-    #   FILTER (instant, local)
-    # ══════════════════════════════════════════════════════════════════
-    def _filter_tree(self):
-        query = self.filter_var.get().strip().lower()
-        if not query:
-            self._populate_tree(
-                self.all_items["dirs"] + self.all_items["files"],
-                self.current_path)
+    def _pin_repo(self):
+        key = self.repo_var.get()
+        if not key:
             return
-        filtered = ([d for d in self.all_items["dirs"]  if query in d["name"].lower()] +
-                    [f for f in self.all_items["files"] if query in f["name"].lower()])
-        self.tree.delete(*self.tree.get_children())
-        for item in filtered:
-            is_dir = item.get("type") == "dir"
-            self.tree.insert("", "end",
-                             text=f"  {item['name']}",
-                             values=("📁" if is_dir else file_icon(item["name"]),
-                                     "Folder" if is_dir else "File",
-                                     "—" if is_dir else fmt_size(item.get("size", 0))),
-                             tags=("dir" if is_dir else "file",))
-        self.tree.tag_configure("dir",  foreground=self.C["tag_dir"])
-        self.tree.tag_configure("file", foreground=self.C["tag_file"])
-        self.file_count_lbl.config(text=f"Filter: {len(filtered)} match{'es' if len(filtered)!=1 else ''}")
+        if key in self.pinned_repos:
+            self.pinned_repos.remove(key)
+            self._set_status(f"Unpinned: {key}", "ok")
+        else:
+            self.pinned_repos.append(key)
+            self._set_status(f"Pinned: {key}", "ok")
+        names = self._build_repo_list_names()
+        self.repo_combo["values"] = names
+        self._save_config()
 
     # ══════════════════════════════════════════════════════════════════
-    #   USER-SCOPED SEARCH  (NEW in v3)
+    #   USER-SCOPED SEARCH  — FULLY REDESIGNED v4
     # ══════════════════════════════════════════════════════════════════
     def _do_user_search(self):
         if not self.username:
             messagebox.showwarning(
-                "GitView — Not Connected",
+                "Not Connected",
                 "Please connect a GitHub account first.\n\n"
-                "You can use either a token or browse a public profile.")
+                "You can use either Token mode or Browse Public Profile mode.")
             return
         query = self.usearch_var.get().strip()
         if not query:
             self._set_status("Please enter a search term", "warn")
             return
+        if len(query) < 2:
+            self._set_status("Search term must be at least 2 characters", "warn")
+            return
+
+        # Add to history
+        if query not in self._search_history:
+            self._search_history.appendleft(query)
+        else:
+            self._search_history.remove(query)
+            self._search_history.appendleft(query)
 
         scope = self.usearch_scope_var.get()
-        self.uresults_tree.delete(*self.uresults_tree.get_children())
-        self._usearch_results_data.clear()
-        self.usearch_count_lbl.config(text="Searching…")
-        self.usearch_prog_lbl.config(text="● Searching…")
-        self.usearch_cancel_btn.config(state=tk.NORMAL)
+        self._search_page    = 1
+        self._search_results_all = []
+
+        # Clear UI
+        for w in self.results_inner.winfo_children():
+            w.destroy()
+        tk.Label(self.results_inner, text="🔄  Searching…",
+                 bg=self.C["bg"], fg=self.C["fg_muted"],
+                 font=(FONT_UI, 11)).pack(pady=40)
+
+        self.search_count_lbl.config(text="Searching…")
+        self.search_prog_lbl.config(text=f"● {scope} search…")
+        self.search_cancel_btn.config(state=tk.NORMAL)
+        self.search_go_btn.config(state=tk.DISABLED)
         self.search_cancel.clear()
+        self._notebook_select_search()
 
         def _work():
             try:
                 results = []
                 if scope == "Repos":
                     results = self._search_user_repos(query)
+                elif scope == "Content":
+                    results = self._search_user_content(query)
                 elif scope == "Files":
                     results = self._search_user_files(query)
                 elif scope == "Commits":
@@ -2427,208 +2326,753 @@ class GitView:
                     results = self._search_user_topics(query)
 
                 if not self.search_cancel.is_set():
-                    self.root.after(0, lambda: self._display_user_search_results(results, scope))
+                    self.root.after(0, lambda: self._display_search_results(
+                        results, scope, query))
             except Exception as e:
                 if not self.search_cancel.is_set():
-                    self.root.after(0, lambda: self._set_status(f"Search error: {e}", "err"))
-                    self.root.after(0, lambda: self.usearch_prog_lbl.config(text=""))
+                    self.root.after(0, lambda: self._set_status(
+                        f"Search error: {e}", "err"))
+                    self.root.after(0, lambda: self.search_prog_lbl.config(text=""))
             finally:
-                self.root.after(0, lambda: self.usearch_cancel_btn.config(state=tk.DISABLED))
+                self.root.after(0, lambda: self.search_cancel_btn.config(
+                    state=tk.DISABLED))
+                self.root.after(0, lambda: self.search_go_btn.config(
+                    state=tk.NORMAL))
 
         self.search_thread = threading.Thread(target=_work, daemon=True)
         self.search_thread.start()
 
+    def _notebook_select_search(self):
+        try:
+            self.notebook.select(1)
+        except Exception:
+            pass
+
+    # ── Search: Repos (name + description + topics + README hint) ──
     def _search_user_repos(self, query: str) -> List[Dict]:
-        """Search repo names and descriptions for the loaded user."""
         q_lower = query.lower()
         results = []
         for key, rd in self.repo_data.items():
-            name = rd.get("name", "").lower()
-            desc = (rd.get("description") or "").lower()
-            topics = [t.lower() for t in rd.get("topics", [])]
-            if (q_lower in name or q_lower in desc or
-                    any(q_lower in t for t in topics)):
-                results.append({"type": "repo", "key": key, "data": rd})
+            name    = rd.get("name", "").lower()
+            desc    = (rd.get("description") or "").lower()
+            topics  = [t.lower() for t in rd.get("topics", [])]
+            lang    = (rd.get("language") or "").lower()
+            score   = 0
+            score  += score_match(q_lower, name) * 3
+            score  += score_match(q_lower, desc) * 1
+            if any(q_lower in t for t in topics):
+                score += 40
+            if q_lower == lang:
+                score += 20
+            if score > 0:
+                results.append({
+                    "type": "repo", "key": key, "data": rd, "_score": score
+                })
+        results.sort(key=lambda x: x["_score"], reverse=True)
         return results
 
-    def _search_user_files(self, query: str) -> List[Dict]:
-        """Use GitHub code search scoped to user:username."""
+    # ── Search: Content (keywords INSIDE file contents) ────────────
+    def _search_user_content(self, query: str) -> List[Dict]:
+        """
+        Search for a keyword inside file contents using GitHub code search.
+        Works for BOTH token and public (unauthenticated) users.
+        Requires Accept: application/vnd.github.text-match+json for fragments.
+        """
         results = []
         q = f"{query} user:{self.username}"
-        extra = {}
+
+        headers = {
+            "Accept": "application/vnd.github.text-match+json",
+        }
         if self.auth_mode == "token" and self.token:
-            extra = {}
+            headers["Authorization"] = f"token {self.token}"
+
+        page     = 1
+        per_page = 30
+        max_pages = 3  # Fetch up to 3 pages = 90 results
+
+        while page <= max_pages:
+            if self.search_cancel.is_set():
+                break
+            try:
+                r = resilient_get(
+                    self.session,
+                    f"{self.api_base}/search/code",
+                    params={"q": q, "per_page": per_page, "page": page},
+                    headers=headers,
+                    timeout=25)
+                self._parse_rate_limit(r)
+
+                if r.status_code == 200:
+                    data = r.json()
+                    items = data.get("items", [])
+                    for item in items:
+                        results.append({
+                            "type":    "content",
+                            "key":     str(id(item)) + str(page),
+                            "data":    item,
+                            "_score":  100,
+                        })
+                    if len(items) < per_page:
+                        break
+                    # GitHub caps code search at 1000 results
+                    if data.get("total_count", 0) == 0:
+                        break
+                    page += 1
+                    # Small delay to respect secondary rate limits
+                    time.sleep(0.5)
+
+                elif r.status_code == 403:
+                    results.append({
+                        "type": "error",
+                        "key":  "err403",
+                        "data": {
+                            "message": (
+                                "⚠️  Content search requires authentication.\n\n"
+                                "Switch to Token mode to search inside file contents.\n"
+                                "Get a free token at github.com/settings/tokens")
+                        }
+                    })
+                    break
+                elif r.status_code == 422:
+                    results.append({
+                        "type": "error",
+                        "key":  "err422",
+                        "data": {
+                            "message": (
+                                "⚠️  Search term invalid or too short.\n\n"
+                                "Try a longer keyword (3+ characters) or use quotes\n"
+                                "for exact phrases: \"your phrase here\"")
+                        }
+                    })
+                    break
+                elif r.status_code == 429:
+                    time.sleep(10)
+                    continue
+                else:
+                    try:
+                        msg = r.json().get("message", f"HTTP {r.status_code}")
+                    except Exception:
+                        msg = f"HTTP {r.status_code}"
+                    results.append({
+                        "type": "error",
+                        "key":  "errmsg",
+                        "data": {"message": f"API error: {msg}"}
+                    })
+                    break
+            except Exception as e:
+                results.append({
+                    "type": "error",
+                    "key":  "errnet",
+                    "data": {"message": f"Network error: {e}"}
+                })
+                break
+
+        return results
+
+    # ── Search: Files (filenames across repos) ─────────────────────
+    def _search_user_files(self, query: str) -> List[Dict]:
+        """
+        Search file names across the loaded user's repositories.
+        Uses GitHub code search + text-match headers for fragments.
+        """
+        results = []
+        q = f"filename:{query} user:{self.username}"
+        headers = {
+            "Accept": "application/vnd.github.text-match+json",
+        }
+        if self.auth_mode == "token" and self.token:
+            headers["Authorization"] = f"token {self.token}"
+
         try:
-            r = resilient_get(self.session, f"{self.api_base}/search/code",
-                              params={"q": q, "per_page": 50},
-                              timeout=20)
+            r = resilient_get(
+                self.session,
+                f"{self.api_base}/search/code",
+                params={"q": q, "per_page": 50},
+                headers=headers,
+                timeout=25)
             self._parse_rate_limit(r)
+
             if r.status_code == 200:
                 items = r.json().get("items", [])
                 for item in items:
-                    results.append({"type": "file", "key": str(id(item)), "data": item})
+                    results.append({
+                        "type":   "file",
+                        "key":    str(id(item)),
+                        "data":   item,
+                        "_score": 100,
+                    })
             elif r.status_code == 403:
-                results.append({"type": "error", "key": "err",
-                                 "data": {"message": "File search requires authentication. "
-                                          "Please use Token mode for file searching."}})
+                results.append({
+                    "type": "error", "key": "err403",
+                    "data": {"message":
+                             "⚠️  File search requires authentication.\n"
+                             "Switch to Token mode for file searching."}
+                })
             elif r.status_code == 422:
-                results.append({"type": "error", "key": "err422",
-                                 "data": {"message": "Search term too short or invalid. "
-                                          "Try a longer keyword."}})
+                results.append({
+                    "type": "error", "key": "err422",
+                    "data": {"message":
+                             "⚠️  Search term too short or invalid.\n"
+                             "Try a longer filename (3+ chars)."}
+                })
         except Exception as e:
-            results.append({"type": "error", "key": "errc", "data": {"message": str(e)}})
+            results.append({
+                "type": "error", "key": "errnet",
+                "data": {"message": f"Network error: {e}"}
+            })
         return results
 
+    # ── Search: Commits ────────────────────────────────────────────
     def _search_user_commits(self, query: str) -> List[Dict]:
-        """Search commit messages within user repos."""
+        """Search commit messages by the loaded user."""
         results = []
         q = f"{query} author:{self.username}"
+        headers = {
+            "Accept": "application/vnd.github.cloak-preview+json",
+        }
+        if self.auth_mode == "token" and self.token:
+            headers["Authorization"] = f"token {self.token}"
+
         try:
-            r = resilient_get(self.session, f"{self.api_base}/search/commits",
-                              params={"q": q, "per_page": 30},
-                              headers={"Accept": "application/vnd.github.cloak-preview+json"},
-                              timeout=20)
+            r = resilient_get(
+                self.session,
+                f"{self.api_base}/search/commits",
+                params={"q": q, "per_page": 50},
+                headers=headers,
+                timeout=25)
             self._parse_rate_limit(r)
+
             if r.status_code == 200:
                 items = r.json().get("items", [])
                 for item in items:
-                    results.append({"type": "commit", "key": str(id(item)), "data": item})
+                    results.append({
+                        "type":   "commit",
+                        "key":    str(id(item)),
+                        "data":   item,
+                        "_score": 100,
+                    })
             elif r.status_code == 403:
-                results.append({"type": "error", "key": "err",
-                                 "data": {"message": "Commit search requires authentication."}})
+                results.append({
+                    "type": "error", "key": "err403",
+                    "data": {"message":
+                             "⚠️  Commit search requires authentication.\n"
+                             "Switch to Token mode."}
+                })
+            elif r.status_code == 422:
+                # Fall back to local repo search
+                results = self._search_commits_locally(query)
         except Exception as e:
-            results.append({"type": "error", "key": "errc", "data": {"message": str(e)}})
+            results.append({
+                "type": "error", "key": "errnet",
+                "data": {"message": f"Network error: {e}"}
+            })
         return results
 
+    def _search_commits_locally(self, query: str) -> List[Dict]:
+        """Fallback: search commit messages within loaded repos."""
+        results = []
+        q_lower = query.lower()
+        repos_to_check = list(self.repo_data.items())[:10]  # Limit to 10
+
+        for key, rd in repos_to_check:
+            if self.search_cancel.is_set():
+                break
+            repo_name = rd.get("name", "")
+            try:
+                r = resilient_get(
+                    self.session,
+                    f"{self.api_base}/repos/{self.username}/{repo_name}/commits",
+                    params={"per_page": 30},
+                    timeout=15)
+                if r.status_code == 200:
+                    for commit_data in r.json():
+                        msg = (commit_data.get("commit", {})
+                               .get("message", "")).lower()
+                        if q_lower in msg:
+                            commit_data["repository"] = {"full_name": key}
+                            results.append({
+                                "type":   "commit",
+                                "key":    str(id(commit_data)),
+                                "data":   commit_data,
+                                "_score": 100,
+                            })
+            except Exception:
+                pass
+        return results
+
+    # ── Search: Topics ──────────────────────────────────────────────
     def _search_user_topics(self, query: str) -> List[Dict]:
-        """Filter repos by language or topic."""
+        """Filter repos by language or topic tag."""
         q_lower = query.lower()
         results = []
         for key, rd in self.repo_data.items():
-            lang   = (rd.get("language") or "").lower()
-            topics = [t.lower() for t in rd.get("topics", [])]
-            if q_lower == lang or any(q_lower in t for t in topics):
-                results.append({"type": "repo", "key": key, "data": rd})
+            lang    = (rd.get("language") or "").lower()
+            topics  = [t.lower() for t in rd.get("topics", [])]
+            score   = 0
+            if q_lower == lang:          score += 100
+            if q_lower in lang:          score += 60
+            if q_lower in topics:        score += 80
+            if any(q_lower in t for t in topics): score += 40
+            if score > 0:
+                results.append({
+                    "type": "repo", "key": key, "data": rd, "_score": score
+                })
+        results.sort(key=lambda x: x["_score"], reverse=True)
         return results
 
     def _cancel_user_search(self):
         self.search_cancel.set()
-        self.usearch_cancel_btn.config(state=tk.DISABLED)
-        self.usearch_prog_lbl.config(text="")
+        self.search_cancel_btn.config(state=tk.DISABLED)
+        self.search_go_btn.config(state=tk.NORMAL)
+        self.search_prog_lbl.config(text="")
         self._set_status("Search cancelled")
 
-    def _display_user_search_results(self, results: List[Dict], scope: str):
-        self.uresults_tree.delete(*self.uresults_tree.get_children())
-        self._usearch_results_data.clear()
-        self.usearch_prog_lbl.config(text="")
-        count = len(results)
-        self.usearch_count_lbl.config(text=f"{count} result{'s' if count!=1 else ''}")
+    # ══════════════════════════════════════════════════════════════════
+    #   SEARCH RESULT DISPLAY — Rich Cards
+    # ══════════════════════════════════════════════════════════════════
+    def _display_search_results(self, results: List[Dict], scope: str, query: str):
+        self._search_results_all = results
+        self._search_page        = 1
+        self.search_prog_lbl.config(text="")
 
-        for entry in results:
-            key   = entry["key"]
-            etype = entry["type"]
-            data  = entry["data"]
+        count = len([r for r in results if r.get("type") != "error"])
+        errors = [r for r in results if r.get("type") == "error"]
 
-            if etype == "error":
-                self.uresults_tree.insert("", "end", iid=key,
-                                          text="  ⚠️  Search note",
-                                          values=(data.get("message",""), "", ""))
-                continue
+        sort_pref = self.result_sort_var.get()
+        if sort_pref == "name":
+            self._sort_results_by_name()
+        elif sort_pref == "date":
+            self._sort_results_by_date()
 
-            if etype == "repo":
-                rd      = data
-                name    = rd.get("name", "")
-                lang    = rd.get("language") or "—"
-                stars   = rd.get("stargazers_count", 0)
-                updated = relative_time(rd.get("updated_at", ""))
-                desc    = (rd.get("description") or "")[:80]
-                icon    = "📦"
-                self.uresults_tree.insert("", "end", iid=key,
-                                          text=f"  {icon}  {name}",
-                                          values=(desc, f"★{stars:,}  {lang}", updated))
-            elif etype == "file":
-                name    = data.get("name", "")
-                path    = data.get("path", "")
-                repo    = data.get("repository", {}).get("full_name", "")
-                icon    = file_icon(name)
-                self.uresults_tree.insert("", "end", iid=key,
-                                          text=f"  {icon}  {name}",
-                                          values=(path, repo, ""))
-            elif etype == "commit":
-                commit  = data.get("commit", {})
-                msg     = (commit.get("message", "") or "")[:70]
-                sha     = data.get("sha", "")[:10]
-                repo    = data.get("repository", {}).get("full_name", "")
-                date    = relative_time((commit.get("author") or {}).get("date", ""))
-                self.uresults_tree.insert("", "end", iid=key,
-                                          text=f"  🕐  {msg}",
-                                          values=(sha, repo, date))
+        self.search_count_lbl.config(
+            text=f"{'No' if count == 0 else count} result"
+                 f"{'s' if count != 1 else ''}")
 
-            self._usearch_results_data[key] = entry
+        self._set_status(
+            f"Found {count} result{'s' if count != 1 else ''}"
+            f" for '{query}'  [{scope}]",
+            "ok" if count > 0 else "warn")
+        self._log_operation(
+            f"Search [{scope}] '{query}' → {count} results")
 
-        self._set_status(f"Found {count} result{'s' if count!=1 else ''} for '{self.usearch_var.get()}'",
-                         "ok" if count else "warn")
-        self._log_operation(f"Search [{scope}]: '{self.usearch_var.get()}' → {count} result(s)")
-        if count == 0:
-            self.uresults_tree.insert("", "end",
-                                      text="  No results found — try a different keyword",
-                                      values=("", "", ""))
+        # Show error banners if any
+        if errors:
+            for err in errors[:1]:
+                msg = err["data"].get("message", "Unknown error")
+                self._show_error_banner(msg)
+                return
 
-    def _on_usearch_select(self, _=None):
-        sel = self.uresults_tree.selection()
-        if not sel:
+        self._render_results_page()
+
+    def _sort_results_by_name(self):
+        def key(r):
+            d = r.get("data", {})
+            if r["type"] == "repo":    return d.get("name", "").lower()
+            if r["type"] in ("content", "file"): return d.get("name", "").lower()
+            if r["type"] == "commit":
+                return d.get("commit", {}).get("message", "").lower()
+            return ""
+        self._search_results_all.sort(key=key)
+
+    def _sort_results_by_date(self):
+        def key(r):
+            d = r.get("data", {})
+            if r["type"] == "repo":
+                return d.get("updated_at", "") or ""
+            if r["type"] == "commit":
+                return (d.get("commit", {}).get("author") or {}).get("date", "") or ""
+            return ""
+        self._search_results_all.sort(key=key, reverse=True)
+
+    def _resort_results(self):
+        if not self._search_results_all:
             return
-        iid   = sel[0]
-        entry = self._usearch_results_data.get(iid)
-        if not entry:
-            return
-        etype = entry["type"]
-        data  = entry["data"]
+        sort_pref = self.result_sort_var.get()
+        if sort_pref == "name":
+            self._sort_results_by_name()
+        elif sort_pref == "date":
+            self._sort_results_by_date()
+        # relevance: keep original order
+        self._search_page = 1
+        self._render_results_page()
+
+    def _show_error_banner(self, msg: str):
+        C = self.C
+        for w in self.results_inner.winfo_children():
+            w.destroy()
+        frame = tk.Frame(self.results_inner, bg=C["danger_subtle"],
+                         highlightbackground=C["danger"], highlightthickness=1)
+        frame.pack(fill=tk.X, padx=10, pady=10)
+        tk.Label(frame, text="⚠️  Search Note",
+                 bg=C["danger_subtle"], fg=C["danger"],
+                 font=(FONT_UI, 10, "bold"), padx=12, pady=8).pack(anchor=tk.W)
+        tk.Label(frame, text=msg,
+                 bg=C["danger_subtle"], fg=C["fg"],
+                 font=(FONT_UI, 9), padx=12, pady=(0, 10),
+                 justify=tk.LEFT, wraplength=600).pack(anchor=tk.W)
+        self.search_count_lbl.config(text="")
+        self.pager_lbl.config(text="Page 0 / 0")
+
+    def _render_results_page(self):
         C     = self.C
+        query = self.usearch_var.get().strip()
 
-        self.udet_body.config(state=tk.NORMAL)
-        self.udet_body.delete("1.0", tk.END)
+        for w in self.results_inner.winfo_children():
+            w.destroy()
+
+        data = [r for r in self._search_results_all if r.get("type") != "error"]
+        total     = len(data)
+        max_page  = max(1, (total + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE)
+        page      = min(self._search_page, max_page)
+        self._search_page = page
+
+        start = (page - 1) * RESULTS_PER_PAGE
+        end   = start + RESULTS_PER_PAGE
+        page_items = data[start:end]
+
+        self.pager_lbl.config(text=f"Page {page} / {max_page}")
+        self.pager_prev.config(state=tk.NORMAL if page > 1        else tk.DISABLED)
+        self.pager_next.config(state=tk.NORMAL if page < max_page else tk.DISABLED)
+
+        if not page_items:
+            empty = tk.Frame(self.results_inner, bg=C["bg"])
+            empty.pack(pady=40)
+            tk.Label(empty, text="🔎  No results found",
+                     bg=C["bg"], fg=C["fg_muted"],
+                     font=(FONT_TITLE, 13, "bold")).pack()
+            tk.Label(empty,
+                     text="Try a different keyword or switch search scope",
+                     bg=C["bg"], fg=C["fg_subtle"],
+                     font=(FONT_UI, 9)).pack(pady=(4, 0))
+            return
+
+        for entry in page_items:
+            self._render_result_card(entry, query)
+
+        # Scroll to top
+        self.results_canvas.yview_moveto(0)
+
+    def _render_result_card(self, entry: Dict, query: str):
+        """Render a rich result card in the scrollable results area."""
+        C      = self.C
+        etype  = entry.get("type", "")
+        data   = entry.get("data", {})
+        parent = self.results_inner
+
+        card = tk.Frame(parent, bg=C["card"],
+                        highlightbackground=C["border"], highlightthickness=1,
+                        cursor="hand2")
+        card.pack(fill=tk.X, padx=8, pady=3)
+
+        inner = tk.Frame(card, bg=C["card"])
+        inner.pack(fill=tk.X, padx=12, pady=10)
+
+        # Left: icon
+        icon_col = tk.Frame(inner, bg=C["card"])
+        icon_col.pack(side=tk.LEFT, padx=(0, 10))
+
+        if etype == "repo":
+            icon_text = "📦"
+            badge_text  = "REPO"
+            badge_bg    = C["accent_subtle"]
+            badge_fg    = C["accent"]
+        elif etype in ("content", "file"):
+            name = data.get("name", "")
+            icon_text = file_icon(name)
+            badge_text  = "CONTENT" if etype == "content" else "FILE"
+            badge_bg    = C["purple_subtle"]
+            badge_fg    = C["purple"]
+        elif etype == "commit":
+            icon_text = "🕐"
+            badge_text  = "COMMIT"
+            badge_bg    = C["cyan_subtle"]
+            badge_fg    = C["cyan"]
+        else:
+            icon_text = "📄"
+            badge_text  = etype.upper()
+            badge_bg    = C["surface2"]
+            badge_fg    = C["fg_muted"]
+
+        tk.Label(icon_col, text=icon_text,
+                 bg=C["card"], fg=C["fg"],
+                 font=(FONT_UI, 18)).pack(pady=4)
+        tk.Label(icon_col, text=badge_text,
+                 bg=badge_bg, fg=badge_fg,
+                 font=(FONT_UI, 6, "bold"), padx=4, pady=1).pack()
+
+        # Right: content
+        content_col = tk.Frame(inner, bg=C["card"])
+        content_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Header row: name + repo path
+        header_row = tk.Frame(content_col, bg=C["card"])
+        header_row.pack(fill=tk.X)
+
+        if etype == "repo":
+            rd      = data
+            name    = rd.get("name", "")
+            stars   = rd.get("stargazers_count", 0)
+            lang    = rd.get("language") or ""
+            upd     = relative_time(rd.get("updated_at", ""))
+            desc    = (rd.get("description") or "No description")[:120]
+            topics  = rd.get("topics", [])[:5]
+            is_priv = rd.get("private", False)
+
+            name_lbl = tk.Label(header_row, text=self._highlight_query(name, query),
+                                bg=C["card"], fg=C["accent_hover"],
+                                font=(FONT_TITLE, 11, "bold"), cursor="hand2")
+            name_lbl.pack(side=tk.LEFT)
+
+            if is_priv:
+                tk.Label(header_row, text="🔒",
+                         bg=C["card"], fg=C["fg_subtle"],
+                         font=(FONT_UI, 9)).pack(side=tk.LEFT, padx=4)
+
+            meta_text = f"  ★{stars:,}"
+            if lang:
+                meta_text += f"  ·  {lang}"
+            meta_text += f"  ·  {upd}"
+            tk.Label(header_row, text=meta_text,
+                     bg=C["card"], fg=C["fg_muted"],
+                     font=(FONT_UI, 8)).pack(side=tk.LEFT, padx=6)
+
+            tk.Label(content_col, text=desc,
+                     bg=C["card"], fg=C["fg_muted"],
+                     font=(FONT_UI, 9), anchor=tk.W, justify=tk.LEFT).pack(
+                fill=tk.X, pady=(2, 0))
+
+            if topics:
+                tags_row = tk.Frame(content_col, bg=C["card"])
+                tags_row.pack(fill=tk.X, pady=(4, 0))
+                for topic in topics:
+                    tk.Label(tags_row, text=topic,
+                             bg=C["accent_subtle"], fg=C["accent"],
+                             font=(FONT_UI, 7), padx=5, pady=1).pack(
+                        side=tk.LEFT, padx=(0, 3))
+
+        elif etype in ("content", "file"):
+            name    = data.get("name", "")
+            path    = data.get("path", "")
+            repo    = data.get("repository", {}).get("full_name", "")
+            url     = data.get("html_url", "")
+
+            name_lbl = tk.Label(header_row, text=self._highlight_query(name, query),
+                                bg=C["card"], fg=C["accent_hover"],
+                                font=(FONT_TITLE, 11, "bold"), cursor="hand2")
+            name_lbl.pack(side=tk.LEFT)
+
+            tk.Label(header_row,
+                     text=f"  in  {repo}",
+                     bg=C["card"], fg=C["fg_subtle"],
+                     font=(FONT_UI, 8)).pack(side=tk.LEFT)
+
+            if path != name:
+                tk.Label(content_col, text=f"📂  {path}",
+                         bg=C["card"], fg=C["fg_subtle"],
+                         font=(FONT_MONO, 8)).pack(anchor=tk.W, pady=(2, 0))
+
+            # Text matches / fragments
+            fragments = data.get("text_matches", [])
+            if fragments:
+                frag_frame = tk.Frame(content_col,
+                                      bg=C["surface2"],
+                                      highlightbackground=C["border"],
+                                      highlightthickness=1)
+                frag_frame.pack(fill=tk.X, pady=(6, 0))
+                for frag in fragments[:3]:
+                    fragment_text = frag.get("fragment", "").strip()
+                    if fragment_text:
+                        self._render_fragment(frag_frame, fragment_text, query)
+
+        elif etype == "commit":
+            commit  = data.get("commit", {})
+            msg     = (commit.get("message", "") or "").split("\n")[0][:100]
+            sha     = data.get("sha", "")[:10]
+            repo    = data.get("repository", {}).get("full_name", "")
+            author  = (commit.get("author") or {}).get("name", "")
+            date_str= relative_time((commit.get("author") or {}).get("date", ""))
+
+            msg_lbl = tk.Label(header_row, text=self._highlight_query(msg, query),
+                               bg=C["card"], fg=C["fg"],
+                               font=(FONT_UI, 10, "bold"))
+            msg_lbl.pack(side=tk.LEFT)
+
+            meta = f"  {sha}  ·  {author}  ·  {date_str}"
+            if repo:
+                meta += f"  ·  {repo}"
+            tk.Label(content_col, text=meta,
+                     bg=C["card"], fg=C["fg_muted"],
+                     font=(FONT_MONO, 8)).pack(anchor=tk.W, pady=(2, 0))
+
+        # Click to select
+        def on_click(e=None, ent=entry):
+            self._on_card_click(ent)
+
+        def on_enter(e=None):
+            card.config(highlightbackground=C["accent"])
+        def on_leave(e=None):
+            card.config(highlightbackground=C["border"])
+
+        for widget in [card, inner, content_col, header_row]:
+            widget.bind("<Button-1>", on_click)
+            widget.bind("<Enter>",    on_enter)
+            widget.bind("<Leave>",    on_leave)
+        if 'name_lbl' in dir():
+            try:
+                name_lbl.bind("<Button-1>", on_click)
+                name_lbl.bind("<Enter>",    on_enter)
+                name_lbl.bind("<Leave>",    on_leave)
+            except Exception:
+                pass
+
+    def _highlight_query(self, text: str, query: str) -> str:
+        """For now return text as-is; highlighting applied via tag_configure in Text widgets."""
+        return text
+
+    def _render_fragment(self, parent, fragment: str, query: str):
+        """Render a code fragment with keyword highlighting."""
+        C = self.C
+        frag_txt = tk.Text(parent, wrap=tk.WORD,
+                           bg=C["surface2"], fg=C["fg_muted"],
+                           font=(FONT_MONO, 8), relief=tk.FLAT,
+                           highlightthickness=0, height=3,
+                           padx=8, pady=4, state=tk.NORMAL)
+        frag_txt.pack(fill=tk.X, padx=0, pady=0)
+        frag_txt.insert("1.0", fragment)
+
+        # Highlight matching keywords
+        frag_txt.tag_configure("highlight",
+                               background=C["highlight_bg"],
+                               foreground=C["highlight_fg"],
+                               font=(FONT_MONO, 8, "bold"))
+        try:
+            q = query.lower()
+            content = fragment.lower()
+            start = 0
+            while True:
+                idx = content.find(q, start)
+                if idx == -1:
+                    break
+                start_idx = f"1.0 + {idx} chars"
+                end_idx   = f"1.0 + {idx + len(q)} chars"
+                frag_txt.tag_add("highlight", start_idx, end_idx)
+                start = idx + 1
+        except Exception:
+            pass
+
+        frag_txt.config(state=tk.DISABLED)
+
+    def _on_card_click(self, entry: Dict):
+        """Show details for a clicked result card."""
+        C     = self.C
+        etype = entry.get("type", "")
+        data  = entry.get("data", {})
+
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+
+        # Configure tags
+        self.detail_text.tag_configure("heading",
+                                       font=(FONT_TITLE, 11, "bold"),
+                                       foreground=C["accent_hover"])
+        self.detail_text.tag_configure("key",
+                                       font=(FONT_MONO, 8, "bold"),
+                                       foreground=C["fg_subtle"])
+        self.detail_text.tag_configure("value",
+                                       font=(FONT_UI, 9),
+                                       foreground=C["fg"])
+        self.detail_text.tag_configure("fragment",
+                                       font=(FONT_MONO, 8),
+                                       foreground=C["fg_muted"],
+                                       background=C["surface2"])
+        self.detail_text.tag_configure("highlight",
+                                       background=C["highlight_bg"],
+                                       foreground=C["highlight_fg"],
+                                       font=(FONT_MONO, 8, "bold"))
+        self.detail_text.tag_configure("url",
+                                       foreground=C["accent"],
+                                       font=(FONT_UI, 8))
+
+        def row(k, v):
+            self.detail_text.insert(tk.END, f"{k:<14}", "key")
+            self.detail_text.insert(tk.END, f"{v}\n",   "value")
+
+        query = self.usearch_var.get().strip().lower()
 
         if etype == "repo":
             rd   = data
             url  = rd.get("html_url", "")
-            key  = entry["key"]
-            self.udet_icon.config(text="📦")
-            self.udet_name.config(text=rd.get("name", ""))
-            self.udet_body.insert(tk.END,
-                f"Owner:       {rd.get('owner',{}).get('login','')}\n"
-                f"Stars:       {rd.get('stargazers_count',0):,}\n"
-                f"Forks:       {rd.get('forks_count',0):,}\n"
-                f"Language:    {rd.get('language') or '—'}\n"
-                f"Open Issues: {rd.get('open_issues_count',0):,}\n"
-                f"Private:     {'Yes' if rd.get('private') else 'No'}\n"
-                f"Updated:     {relative_time(rd.get('updated_at',''))}\n\n"
-                f"Description:\n{rd.get('description') or '—'}\n\n"
-                f"URL: {url}\n")
-            self.udet_open_btn.config(command=lambda u=url: webbrowser.open(u))
-            def _nav_repo(k=key):
+            self.detail_text.insert(tk.END, f"  {rd.get('name','')}\n\n", "heading")
+            row("Owner",      rd.get("owner", {}).get("login", ""))
+            row("Stars",      f"{rd.get('stargazers_count',0):,}")
+            row("Forks",      f"{rd.get('forks_count',0):,}")
+            row("Language",   rd.get("language") or "—")
+            row("Issues",     f"{rd.get('open_issues_count',0):,}")
+            row("Size",       fmt_size((rd.get("size", 0) or 0) * 1024))
+            row("Private",    "Yes" if rd.get("private") else "No")
+            row("Updated",    relative_time(rd.get("updated_at", "")))
+            row("Created",    relative_time(rd.get("created_at", "")))
+            topics = rd.get("topics", [])
+            if topics:
+                row("Topics", ", ".join(topics))
+            self.detail_text.insert(tk.END, "\nDescription\n", "key")
+            self.detail_text.insert(tk.END,
+                f"  {(rd.get('description') or 'No description')}\n", "value")
+            self.detail_text.insert(tk.END, "\nURL\n", "key")
+            self.detail_text.insert(tk.END, f"  {url}\n", "url")
+            self.det_open_btn.config(command=lambda u=url: webbrowser.open(u))
+            key = entry.get("key", "")
+            def _nav(k=key):
                 if k in self.repo_data:
                     self.repo_combo.set(k)
                     self._on_repo_select()
                     self.notebook.select(0)
-            self.udet_nav_btn.config(command=_nav_repo,
-                                     text="📁  Navigate to this Repo")
+            self.det_nav_btn.config(command=_nav, text="📁  Open in Explorer")
 
-        elif etype == "file":
-            name = data.get("name", "")
-            path = data.get("path", "")
-            repo = data.get("repository", {}).get("full_name", "")
-            url  = data.get("html_url", "")
-            self.udet_icon.config(text=file_icon(name))
-            self.udet_name.config(text=name)
-            self.udet_body.insert(tk.END,
-                f"Repository:  {repo}\n"
-                f"Path:        {path}\n"
-                f"URL:         {url}\n\n")
-            for frag in data.get("text_matches", []):
-                self.udet_body.insert(tk.END,
-                    f"…{frag.get('fragment','')[:280]}…\n\n")
-            self.udet_open_btn.config(command=lambda u=url: webbrowser.open(u))
+        elif etype in ("content", "file"):
+            name     = data.get("name", "")
+            path     = data.get("path", "")
+            repo     = data.get("repository", {}).get("full_name", "")
+            url      = data.get("html_url", "")
+            lang     = data.get("language", "")
+            self.detail_text.insert(tk.END, f"  {name}\n\n", "heading")
+            row("Repository", repo)
+            row("Path",       path)
+            if lang:
+                row("Language", lang)
+            row("URL",        url)
+
+            fragments = data.get("text_matches", [])
+            if fragments:
+                self.detail_text.insert(tk.END, "\nMatched Fragments\n", "key")
+                for frag in fragments[:5]:
+                    text = frag.get("fragment", "").strip()
+                    if text:
+                        self.detail_text.insert(tk.END, "\n")
+                        start_pos = self.detail_text.index(tk.INSERT)
+                        self.detail_text.insert(tk.END, f"{text}\n", "fragment")
+                        end_pos = self.detail_text.index(tk.INSERT)
+                        # Highlight query in fragment
+                        try:
+                            frag_lower = text.lower()
+                            base_line  = int(start_pos.split(".")[0])
+                            offset = 0
+                            while True:
+                                idx = frag_lower.find(query, offset)
+                                if idx == -1:
+                                    break
+                                si = f"{base_line}.{idx}"
+                                ei = f"{base_line}.{idx + len(query)}"
+                                try:
+                                    self.detail_text.tag_add("highlight", si, ei)
+                                except Exception:
+                                    pass
+                                offset = idx + 1
+                        except Exception:
+                            pass
+
+            self.det_open_btn.config(command=lambda u=url: webbrowser.open(u))
             def _nav_file(r=repo, p=path):
                 if r:
                     if r not in self.repo_data:
@@ -2640,37 +3084,136 @@ class GitView:
                     dir_path = "/".join(p.split("/")[:-1]) if "/" in p else ""
                     self.root.after(900, lambda: self._load_dir(dir_path))
                     self.notebook.select(0)
-            self.udet_nav_btn.config(command=_nav_file,
-                                     text="📁  Navigate in Explorer")
+            self.det_nav_btn.config(command=_nav_file, text="📁  Navigate to File")
 
         elif etype == "commit":
             commit = data.get("commit", {})
             msg    = commit.get("message", "")
             sha    = data.get("sha", "")
             url    = data.get("html_url", "")
-            author = commit.get("author", {})
-            self.udet_icon.config(text="🕐")
-            self.udet_name.config(text=msg[:80])
-            self.udet_body.insert(tk.END,
-                f"SHA:      {sha[:12]}\n"
-                f"Author:   {author.get('name','—')}\n"
-                f"Email:    {author.get('email','—')}\n"
-                f"Date:     {relative_time(author.get('date',''))}\n"
-                f"Repo:     {data.get('repository',{}).get('full_name','')}\n\n"
-                f"URL: {url}\n")
-            self.udet_open_btn.config(command=lambda u=url: webbrowser.open(u))
-            self.udet_nav_btn.config(command=lambda: None,
-                                     text="📋  (navigate not available for commits)")
+            author = commit.get("author") or {}
+            repo   = data.get("repository", {}).get("full_name", "")
 
-        self.udet_body.config(state=tk.DISABLED)
+            self.detail_text.insert(tk.END, f"  {msg[:60]}…\n\n", "heading")
+            row("SHA",        sha[:12])
+            row("Author",     author.get("name", "—"))
+            row("Email",      author.get("email", "—"))
+            row("Date",       relative_time(author.get("date", "")))
+            row("Repository", repo)
+            self.detail_text.insert(tk.END, "\nFull Message\n", "key")
+            self.detail_text.insert(tk.END, f"  {msg}\n", "value")
+            self.detail_text.insert(tk.END, "\nURL\n", "key")
+            self.detail_text.insert(tk.END, f"  {url}\n", "url")
+            self.det_open_btn.config(command=lambda u=url: webbrowser.open(u))
+            self.det_nav_btn.config(command=lambda: None,
+                                    text="🕐  (commit — no navigation)")
 
-    def _on_usearch_open(self, _=None):
-        sel = self.uresults_tree.selection()
+        self.detail_text.config(state=tk.DISABLED)
+
+    # ══════════════════════════════════════════════════════════════════
+    #   COMMITS TAB LOGIC
+    # ══════════════════════════════════════════════════════════════════
+    def _load_commits(self):
+        if not self.current_repo:
+            messagebox.showwarning("GitView", "Please select a repository first.")
+            return
+        author = self.commit_author_var.get().strip()
+        path   = self.commit_path_var.get().strip()
+        params = {"per_page": 60}
+        if author: params["author"] = author
+        if path:   params["path"]   = path
+
+        self.commit_load_btn.config(state=tk.DISABLED, text="Loading…")
+        self.commits_tree.delete(*self.commits_tree.get_children())
+        self._commits_data.clear()
+
+        def _work():
+            try:
+                r = resilient_get(
+                    self.session,
+                    f"{self.api_base}/repos/{self.username}/"
+                    f"{self.current_repo}/commits",
+                    params=params, timeout=20)
+                self._parse_rate_limit(r)
+                if r.status_code == 200:
+                    self.root.after(0, lambda: self._populate_commits(r.json()))
+                else:
+                    msg = r.json().get("message", "Error loading commits")
+                    self.root.after(0, lambda: self._set_status(msg, "err"))
+            except Exception as e:
+                self.root.after(0, lambda: self._set_status(str(e), "err"))
+            finally:
+                self.root.after(0, lambda: self.commit_load_btn.config(
+                    state=tk.NORMAL, text="  🕐  Load Commits  "))
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _load_commits_quick(self):
+        if not self.current_repo:
+            messagebox.showwarning("GitView", "Please select a repository first.")
+            return
+        self.notebook.select(2)
+        self._load_commits()
+
+    def _populate_commits(self, commits: List[Dict]):
+        self.commits_tree.delete(*self.commits_tree.get_children())
+        self._commits_data.clear()
+        for c in commits:
+            sha    = c.get("sha", "")[:10]
+            commit = c.get("commit", {})
+            msg    = (commit.get("message", "") or "").split("\n")[0][:80]
+            author = (commit.get("author") or {}).get("name", "")
+            date   = relative_time((commit.get("author") or {}).get("date", ""))
+            iid    = sha
+            self.commits_tree.insert("", "end", iid=iid,
+                                     text=f"  {msg}",
+                                     values=(sha, author, date))
+            self._commits_data[iid] = c
+        count = len(commits)
+        self.commit_count_lbl.config(text=f"{count} commit{'s' if count != 1 else ''}")
+        self._set_status(f"Loaded {count} commits", "ok")
+
+    def _on_commit_select(self, _=None):
+        sel = self.commits_tree.selection()
         if not sel:
             return
-        iid   = sel[0]
-        entry = self._usearch_results_data.get(iid, {})
-        url   = entry.get("data", {}).get("html_url", "")
+        c = self._commits_data.get(sel[0], {})
+        self.commit_detail.config(state=tk.NORMAL)
+        self.commit_detail.delete("1.0", tk.END)
+        commit = c.get("commit", {})
+        author = commit.get("author") or {}
+        sha    = c.get("sha", "")
+        url    = c.get("html_url", "")
+        self.commit_detail.insert(tk.END,
+            f"SHA:    {sha[:12]}\n"
+            f"Author: {author.get('name','—')}\n"
+            f"Email:  {author.get('email','—')}\n"
+            f"Date:   {relative_time(author.get('date',''))}\n\n"
+            f"── Message ─────────────────────\n"
+            f"{commit.get('message','')}\n\n"
+            f"── Files changed ───────────────\n"
+        )
+        files = c.get("files", [])
+        if files:
+            for f in files:
+                self.commit_detail.insert(
+                    tk.END,
+                    f"  {f.get('status','?')[0].upper()}  {f.get('filename','')}\n")
+        else:
+            self.commit_detail.insert(tk.END, "  (load commit URL for file details)\n")
+        self.commit_detail.config(state=tk.DISABLED)
+        self.commit_open_btn.config(command=lambda u=url: webbrowser.open(u))
+        self.commit_copy_sha.config(command=lambda s=sha: (
+            self.root.clipboard_clear(),
+            self.root.clipboard_append(s),
+            self._set_status(f"Copied SHA: {s[:12]}", "ok")))
+
+    def _on_commit_open(self, _=None):
+        sel = self.commits_tree.selection()
+        if not sel:
+            return
+        c   = self._commits_data.get(sel[0], {})
+        url = c.get("html_url", "")
         if url:
             webbrowser.open(url)
 
@@ -2709,7 +3252,8 @@ class GitView:
                     size = fmt_size(data.get("size", 0))
                     self.root.after(0, lambda: self._show_preview_window(
                         name, text, size, api_path))
-                    self.root.after(0, lambda: self._set_status(f"Preview: {name}", "ok"))
+                    self.root.after(0, lambda: self._set_status(
+                        f"Preview: {name}", "ok"))
                 else:
                     self.root.after(0, lambda: self._set_status("Preview failed", "err"))
             except Exception as e:
@@ -2723,7 +3267,7 @@ class GitView:
 
         win = tk.Toplevel(self.root)
         win.title(f"GitView — {name}")
-        win.geometry("1000x720")
+        win.geometry("1060x740")
         win.configure(bg=C["bg"])
         self._preview_windows.append(win)
         win.protocol("WM_DELETE_WINDOW",
@@ -2731,8 +3275,9 @@ class GitView:
                               if win in self._preview_windows else None,
                               win.destroy()))
 
-        # Header
-        hdr = tk.Frame(win, bg=C["surface"], height=48)
+        tk.Frame(win, bg=C["accent"], height=2).pack(fill=tk.X)
+
+        hdr = tk.Frame(win, bg=C["surface"], height=46)
         hdr.pack(fill=tk.X)
         hdr.pack_propagate(False)
         hdr_inner = tk.Frame(hdr, bg=C["surface"])
@@ -2740,8 +3285,9 @@ class GitView:
 
         tk.Label(hdr_inner, text=f"{file_icon(name)}  {name}",
                  bg=C["surface"], fg=C["fg"],
-                 font=(FONT_UI, 11, "bold")).pack(side=tk.LEFT, pady=8)
-        tk.Label(hdr_inner, text=f"  ·  {size}  ·  {lang.capitalize()}  ·  {self.current_repo}",
+                 font=(FONT_TITLE, 11, "bold")).pack(side=tk.LEFT, pady=8)
+        tk.Label(hdr_inner,
+                 text=f"  ·  {size}  ·  {lang.capitalize()}  ·  {self.current_repo}",
                  bg=C["surface"], fg=C["fg_muted"],
                  font=(FONT_UI, 9)).pack(side=tk.LEFT, pady=8)
 
@@ -2749,13 +3295,12 @@ class GitView:
             ("✕  Close",    win.destroy, "ghost"),
             ("📥  Download", lambda: self._download_single_file(name), "accent"),
             ("📋  Copy All", lambda: (win.clipboard_clear(),
-                                      win.clipboard_append(text),
-                                      self._set_status("Copied to clipboard", "ok")), "ghost"),
+                                     win.clipboard_append(text),
+                                     self._set_status("Copied to clipboard", "ok")), "ghost"),
         ]:
             make_btn(hdr_inner, btn_text, btn_cmd, style=btn_style, C=C,
                      font=(FONT_UI, 9), pady=4).pack(side=tk.RIGHT, padx=3, pady=8)
 
-        # Code view
         code_f = tk.Frame(win, bg=C["surface"])
         code_f.pack(fill=tk.BOTH, expand=True)
 
@@ -2769,263 +3314,71 @@ class GitView:
         ln.config(state=tk.DISABLED)
         ln.pack(side=tk.LEFT, fill=tk.Y)
 
-        code = tk.Text(code_f, wrap=tk.NONE,
-                       bg=C["surface"], fg=C["fg"],
-                       font=(FONT_MONO, 10), relief=tk.FLAT,
-                       highlightthickness=0,
-                       selectbackground=C["tree_select"],
-                       insertbackground=C["fg"])
-        code.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        txt = tk.Text(code_f, wrap=tk.NONE,
+                      bg=C["surface"], fg=C["fg"],
+                      font=(FONT_MONO, 10), relief=tk.FLAT,
+                      highlightthickness=0, insertbackground=C["fg"],
+                      selectbackground=C["tree_select"],
+                      padx=12, pady=8)
+        vsb = ttk.Scrollbar(code_f, orient=tk.VERTICAL,   command=txt.yview)
+        hsb = ttk.Scrollbar(win,    orient=tk.HORIZONTAL,  command=txt.xview)
 
-        vsb = ttk.Scrollbar(code_f, orient=tk.VERTICAL)
+        def sync_scroll(*args):
+            txt.yview(*args)
+            ln.yview(*args)
+
+        vsb.config(command=sync_scroll)
+        txt.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        ln.configure(yscrollcommand=vsb.set)
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
-        hsb = ttk.Scrollbar(win, orient=tk.HORIZONTAL, command=code.xview)
-        hsb.pack(fill=tk.X)
-        code.configure(xscrollcommand=hsb.set,
-                       yscrollcommand=lambda *a: (vsb.set(*a), ln.yview_moveto(a[0])))
-        vsb.configure(command=lambda *a: (code.yview(*a), ln.yview(*a)))
+        txt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        code.insert("1.0", text)
-        SyntaxHighlighter.apply(code, lang, C)
-        code.config(state=tk.DISABLED)
-
-        # In-preview find bar
-        find_bar = tk.Frame(win, bg=C["surface2"])
-        find_bar.pack(fill=tk.X)
-        tk.Label(find_bar, text="Find:",
-                 bg=C["surface2"], fg=C["fg_muted"],
-                 font=(FONT_UI, 9)).pack(side=tk.LEFT, padx=8, pady=4)
-        sv = tk.StringVar()
-        find_e = tk.Entry(find_bar, textvariable=sv, relief=tk.FLAT,
-                          bg=C["entry_bg"], fg=C["fg"],
-                          insertbackground=C["fg"], font=(FONT_UI, 10),
-                          highlightthickness=1, highlightbackground=C["border"],
-                          highlightcolor=C["accent"], width=28)
-        find_e.pack(side=tk.LEFT, ipady=3, padx=(0, 8), pady=4)
-        find_count = tk.Label(find_bar, text="",
-                              bg=C["surface2"], fg=C["fg_muted"], font=(FONT_UI, 8))
-        find_count.pack(side=tk.LEFT)
-
-        def _find(*_):
-            code.config(state=tk.NORMAL)
-            code.tag_remove("find_hl", "1.0", tk.END)
-            q = sv.get()
-            if not q:
-                find_count.config(text="")
-                code.config(state=tk.DISABLED)
-                return
-            count = 0
-            start = "1.0"
-            while True:
-                pos = code.search(q, start, stopindex=tk.END, nocase=True)
-                if not pos:
-                    break
-                end = f"{pos} + {len(q)} chars"
-                code.tag_add("find_hl", pos, end)
-                start = end
-                count += 1
-            code.tag_configure("find_hl", background=C["warning"], foreground="#000000")
-            if count:
-                first = code.search(q, "1.0", nocase=True)
-                if first:
-                    code.see(first)
-            find_count.config(text=f"{count} match{'es' if count != 1 else ''}")
-            code.config(state=tk.DISABLED)
-
-        sv.trace_add("write", _find)
-        find_e.bind("<Return>", _find)
-        find_e.focus_set()
-
-        # Status line
-        lines = text.count("\n") + 1
-        tk.Label(win,
-                 text=f"  {lines:,} lines  ·  {len(text):,} chars  ·  {api_path}",
-                 bg=C["status_bar"], fg=C["fg_subtle"],
-                 font=(FONT_UI, 8), anchor=tk.W).pack(fill=tk.X)
-
-    # ══════════════════════════════════════════════════════════════════
-    #   COMMITS TAB LOGIC
-    # ══════════════════════════════════════════════════════════════════
-    def _load_commits_quick(self):
-        self.notebook.select(self.commits_frame)
-        self._load_commits()
-
-    def _load_commits(self):
-        if not self.current_repo:
-            messagebox.showwarning("GitView", "Please select a repository first.")
-            return
-        self._set_status("Loading commits…")
-        self.progress_bar.start()
-        self.commits_tree.delete(*self.commits_tree.get_children())
-        self._commits_data.clear()
-
-        author = self.commit_author_var.get().strip() or None
-        path   = self.commit_path_var.get().strip()   or None
-        branch = self.branch_var.get()
-
-        params: Dict[str, Any] = {"per_page": 60, "sha": branch}
-        if author: params["author"] = author
-        if path:   params["path"]   = path
-
-        def _work():
-            try:
-                r = resilient_get(
-                    self.session,
-                    f"{self.api_base}/repos/{self.username}/"
-                    f"{self.current_repo}/commits",
-                    params=params, timeout=20)
-                self._parse_rate_limit(r)
-                self.root.after(0, self.progress_bar.stop)
-                if r.status_code == 200:
-                    commits = r.json()
-                    self.root.after(0, lambda: self._display_commits(commits))
-                elif r.status_code == 409:
-                    self.root.after(0, lambda: self._set_status(
-                        "Repository is empty — no commits yet", "warn"))
-                else:
-                    msg = r.json().get("message", "Error")
-                    self.root.after(0, lambda: self._set_status(msg, "err"))
-            except Exception as e:
-                self.root.after(0, self.progress_bar.stop)
-                self.root.after(0, lambda: self._set_status(str(e), "err"))
-
-        threading.Thread(target=_work, daemon=True).start()
-
-    def _display_commits(self, commits: List[Dict]):
-        self.commits_tree.delete(*self.commits_tree.get_children())
-        self._commits_data.clear()
-        for c in commits:
-            sha    = c.get("sha", "")[:7]
-            commit = c.get("commit", {})
-            msg    = (commit.get("message", "") or "").split("\n")[0][:80]
-            author = (commit.get("author", {}) or {}).get("name", "—")
-            date   = relative_time((commit.get("author", {}) or {}).get("date", ""))
-            iid    = c.get("sha", str(id(c)))
-            self.commits_tree.insert("", "end", iid=iid,
-                                     text=f"  {msg}",
-                                     values=(sha, author, date))
-            self._commits_data[iid] = c
-        n = len(commits)
-        self.commit_count_lbl.config(text=f"{n} commit{'s' if n!=1 else ''}")
-        self._set_status(f"Loaded {n} commit{'s' if n!=1 else ''}", "ok")
-
-    def _on_commit_select(self, _=None):
-        sel = self.commits_tree.selection()
-        if not sel:
-            return
-        iid    = sel[0]
-        c      = self._commits_data.get(iid, {})
-        commit = c.get("commit", {})
-        msg    = commit.get("message", "")
-        sha    = c.get("sha", "")
-        author = (commit.get("author", {}) or {})
-        url    = c.get("html_url", "")
-
-        self.commit_msg_lbl.config(text=msg[:160])
-        self.commit_meta_lbl.config(
-            text=f"{author.get('name','—')}  <{author.get('email','')}>  ·  "
-                 f"{relative_time(author.get('date',''))}\n{sha[:12]}")
-
-        # Fetch changed files
-        self.commit_files_box.config(state=tk.NORMAL)
-        self.commit_files_box.delete("1.0", tk.END)
-        files = c.get("files", [])
-        if files:
-            for f in files:
-                self.commit_files_box.insert(tk.END,
-                    f"{f.get('status','?')}  {f.get('filename','')}\n")
-        else:
-            self.commit_files_box.insert(tk.END, "(loading…)")
-            self._fetch_commit_files(sha, iid)
-        self.commit_files_box.config(state=tk.DISABLED)
-
-        self.commit_open_btn.config(command=lambda u=url: webbrowser.open(u))
-        def _copy_sha():
-            self.root.clipboard_clear()
-            self.root.clipboard_append(sha)
-            self._set_status(f"Copied SHA: {sha[:12]}", "ok")
-        self.commit_copy_sha.config(command=_copy_sha)
-
-    def _fetch_commit_files(self, sha: str, iid: str):
-        def _work():
-            try:
-                r = resilient_get(
-                    self.session,
-                    f"{self.api_base}/repos/{self.username}/"
-                    f"{self.current_repo}/commits/{sha}",
-                    timeout=15)
-                self._parse_rate_limit(r)
-                if r.status_code == 200:
-                    files = r.json().get("files", [])
-                    self._commits_data[iid]["files"] = files
-                    self.root.after(0, lambda: self._update_commit_files(files))
-            except Exception:
-                pass
-
-        threading.Thread(target=_work, daemon=True).start()
-
-    def _update_commit_files(self, files: List[Dict]):
-        try:
-            self.commit_files_box.config(state=tk.NORMAL)
-            self.commit_files_box.delete("1.0", tk.END)
-            for f in files:
-                self.commit_files_box.insert(tk.END,
-                    f"{f.get('status','?')}  {f.get('filename','')}\n")
-            self.commit_files_box.config(state=tk.DISABLED)
-        except Exception:
-            pass
-
-    def _on_commit_open(self, _=None):
-        sel = self.commits_tree.selection()
-        if not sel:
-            return
-        iid = sel[0]
-        url = self._commits_data.get(iid, {}).get("html_url", "")
-        if url:
-            webbrowser.open(url)
+        txt.insert("1.0", text)
+        txt.config(state=tk.DISABLED)
+        SyntaxHighlighter.apply(txt, lang, C)
 
     # ══════════════════════════════════════════════════════════════════
     #   DOWNLOAD
     # ══════════════════════════════════════════════════════════════════
     def _download_selected(self):
-        sel = self.tree.selection()
-        if not sel:
-            self._set_status("No files selected — click a file first", "warn")
+        if not self.current_repo:
+            messagebox.showwarning("GitView", "Please select a repository first.")
             return
-        dest = filedialog.askdirectory(title="Choose Download Location")
-        if not dest:
-            return
-        items_to_dl = []
+        sel   = self.tree.selection()
+        items = []
         for iid in sel:
             vals = self.tree.item(iid, "values")
             name = self.tree.item(iid, "text").strip()
-            if vals[1] == "File":
+            if vals and vals[1] == "File":
                 path = f"{self.current_path}/{name}" if self.current_path else name
-                items_to_dl.append((name, path))
-        if not items_to_dl:
-            self._set_status("Please select files, not folders", "warn")
+                items.append((name, path))
+        if not items:
+            messagebox.showinfo("GitView", "Select one or more files to download.")
             return
-        self._start_download(items_to_dl, dest)
-
-    def _download_single_file(self, name: str):
-        dest = filedialog.askdirectory(title="Choose Download Location")
+        dest = filedialog.askdirectory(title="Choose Download Destination")
         if not dest:
             return
+        self._start_download(items, dest)
+
+    def _download_single_file(self, name: str):
         path = f"{self.current_path}/{name}" if self.current_path else name
+        dest = filedialog.askdirectory(title="Choose Download Destination")
+        if not dest:
+            return
         self._start_download([(name, path)], dest)
 
     def _start_download(self, items: List[Tuple[str, str]], dest: str):
-        total = len(items)
+        self._set_status(f"Downloading {len(items)} file(s)…")
         self.progress_bar.start()
-        self.progress_var.set(f"Downloading {total} file(s)…")
-        self._log_operation(f"Download: {total} file(s) → {dest}")
+        total  = len(items)
+        branch = self.branch_var.get()
 
         def _work():
-            done = 0
+            done   = 0
             errors = []
             for name, path in items:
                 try:
-                    branch = self.branch_var.get()
                     r = resilient_get(
                         self.session,
                         f"{self.api_base}/repos/{self.username}/"
@@ -3046,7 +3399,6 @@ class GitView:
                         errors.append(name)
                 except Exception as e:
                     errors.append(f"{name}: {e}")
-
             self.root.after(0, self.progress_bar.stop)
             msg = f"Downloaded {done}/{total} file(s) to {dest}"
             if errors:
@@ -3092,11 +3444,11 @@ class GitView:
     def _check_write_access(self) -> bool:
         if self.auth_mode == "public" or not self.token:
             messagebox.showwarning(
-                "GitView — Read Only",
-                "You are in public browse mode — uploading and editing is not available.\n\n"
-                "To upload or edit files:\n"
-                "  1. Switch to 'Use Token' mode\n"
-                "  2. Connect with your GitHub Personal Access Token\n"
+                "Read Only Mode",
+                "You are browsing a public profile — uploading is not available.\n\n"
+                "To upload or edit:\n"
+                "  1. Switch to 'Token Mode'\n"
+                "  2. Connect with a GitHub Personal Access Token\n"
                 "  3. Make sure your token has the 'repo' scope")
             return False
         return True
@@ -3112,7 +3464,7 @@ class GitView:
             return
         name = os.path.basename(path)
         msg  = simpledialog.askstring(
-            "GitView — Commit Message",
+            "Commit Message",
             f"Commit message for uploading '{name}':",
             initialvalue=f"Upload {name} via GitView",
             parent=self.root)
@@ -3128,8 +3480,7 @@ class GitView:
                 api_path = f"{self.current_path}/{name}" if self.current_path else name
                 branch   = self.branch_var.get()
                 payload  = {"message": msg, "content": content, "branch": branch}
-                # Check if file exists (for update SHA)
-                r_check = self.session.get(
+                r_check  = self.session.get(
                     f"{self.api_base}/repos/{self.username}/"
                     f"{self.current_repo}/contents/{api_path}",
                     params={"ref": branch}, timeout=10)
@@ -3142,12 +3493,14 @@ class GitView:
                 self._parse_rate_limit(r)
                 self.root.after(0, self.progress_bar.stop)
                 if r.status_code in (200, 201):
-                    self.root.after(0, lambda: self._set_status(f"Uploaded {name}", "ok"))
+                    self.root.after(0, lambda: self._set_status(
+                        f"Uploaded {name}", "ok"))
                     self.root.after(0, lambda: self._load_dir(self.current_path))
-                    self.root.after(0, lambda: self._log_operation(f"Uploaded {name}"))
+                    self.root.after(0, lambda: self._log_operation(
+                        f"Uploaded {name}"))
                 else:
-                    msg_err = r.json().get("message", "Upload failed")
-                    self.root.after(0, lambda: self._set_status(msg_err, "err"))
+                    err = r.json().get("message", "Upload failed")
+                    self.root.after(0, lambda: self._set_status(err, "err"))
             except Exception as e:
                 self.root.after(0, self.progress_bar.stop)
                 self.root.after(0, lambda: self._set_status(str(e), "err"))
@@ -3164,38 +3517,37 @@ class GitView:
         if not folder:
             return
         files = []
-        for root, _, fnames in os.walk(folder):
+        for root_dir, _, fnames in os.walk(folder):
             for fn in fnames:
-                fp = os.path.join(root, fn)
+                fp  = os.path.join(root_dir, fn)
                 rel = os.path.relpath(fp, folder).replace("\\", "/")
                 files.append((fp, rel))
-
         if not files:
             messagebox.showinfo("GitView", "No files found in that folder.")
             return
-
         commit_msg = simpledialog.askstring(
-            "GitView — Commit Message",
+            "Commit Message",
             f"Commit message for uploading {len(files)} file(s):",
             initialvalue=f"Upload folder {os.path.basename(folder)} via GitView",
             parent=self.root)
         if not commit_msg:
             return
-
         self._set_status(f"Uploading {len(files)} file(s)…")
         self.progress_bar.start()
         total = len(files)
 
         def _work():
-            done = 0
+            done   = 0
             errors = []
             branch = self.branch_var.get()
             for fp, rel in files:
                 try:
                     with open(fp, "rb") as fh:
                         content = base64.b64encode(fh.read()).decode()
-                    api_path = (f"{self.current_path}/{rel}" if self.current_path else rel)
-                    payload  = {"message": commit_msg, "content": content, "branch": branch}
+                    api_path = (f"{self.current_path}/{rel}"
+                                if self.current_path else rel)
+                    payload  = {"message": commit_msg, "content": content,
+                                "branch": branch}
                     r_check  = self.session.get(
                         f"{self.api_base}/repos/{self.username}/"
                         f"{self.current_repo}/contents/{api_path}",
@@ -3209,17 +3561,21 @@ class GitView:
                     self._parse_rate_limit(r)
                     if r.status_code in (200, 201):
                         done += 1
+                        self.root.after(0, lambda d=done, t=total:
+                                        self.progress_var.set(
+                                            f"Uploaded {d}/{t}…"))
                     else:
                         errors.append(rel)
-                    self.root.after(0, lambda d=done: self.progress_var.set(
-                        f"Uploaded {d}/{total}…"))
                 except Exception as e:
                     errors.append(f"{rel}: {e}")
-
             self.root.after(0, self.progress_bar.stop)
-            self.root.after(0, lambda: self._set_status(
-                f"Uploaded {done}/{total} files", "ok"))
-            self.root.after(0, lambda: self._load_dir(self.current_path))
+            if done == total:
+                self.root.after(0, lambda: self._set_status(
+                    f"Uploaded {done}/{total} files", "ok"))
+                self.root.after(0, lambda: self._load_dir(self.current_path))
+            else:
+                msg = f"Uploaded {done}/{total}.  Errors: {', '.join(errors[:5])}"
+                self.root.after(0, lambda: messagebox.showwarning("GitView", msg))
             self.root.after(0, lambda: self._log_operation(
                 f"Folder upload: {done}/{total}"))
 
@@ -3231,153 +3587,93 @@ class GitView:
         if not self.current_repo:
             messagebox.showwarning("GitView", "Please select a repository first.")
             return
-        C = self.C
-        dlg = tk.Toplevel(self.root)
-        dlg.title("GitView — Create New File")
-        dlg.geometry("560x440")
-        dlg.configure(bg=C["bg"])
-        dlg.resizable(True, True)
-        dlg.grab_set()
-
-        tk.Label(dlg, text="📝  Create New File",
-                 bg=C["bg"], fg=C["fg"],
-                 font=(FONT_UI, 13, "bold")).pack(padx=20, pady=(16, 8), anchor=tk.W)
-
-        def lbl(txt):
-            tk.Label(dlg, text=txt, bg=C["bg"], fg=C["fg_subtle"],
-                     font=(FONT_UI, 8, "bold")).pack(padx=20, anchor=tk.W, pady=(8, 2))
-
-        lbl("FILE NAME  (e.g. hello.py  or  docs/guide.md)")
-        name_var = tk.StringVar()
-        tk.Entry(dlg, textvariable=name_var, relief=tk.FLAT,
-                 bg=C["entry_bg"], fg=C["fg"], insertbackground=C["fg"],
-                 font=(FONT_MONO, 11), highlightthickness=1,
-                 highlightbackground=C["border"],
-                 highlightcolor=C["accent"]).pack(padx=20, pady=(0, 4), fill=tk.X, ipady=6)
-
-        lbl("FILE CONTENT")
-        content_txt = tk.Text(dlg, relief=tk.FLAT,
-                              bg=C["entry_bg"], fg=C["fg"],
-                              insertbackground=C["fg"], font=(FONT_MONO, 10),
-                              highlightthickness=1,
-                              highlightbackground=C["border"],
-                              height=10)
-        content_txt.pack(padx=20, fill=tk.BOTH, expand=True)
-
-        lbl("COMMIT MESSAGE")
-        msg_var = tk.StringVar(value="Create new file via GitView")
-        tk.Entry(dlg, textvariable=msg_var, relief=tk.FLAT,
-                 bg=C["entry_bg"], fg=C["fg"], insertbackground=C["fg"],
-                 font=(FONT_UI, 10), highlightthickness=1,
-                 highlightbackground=C["border"],
-                 highlightcolor=C["accent"]).pack(padx=20, pady=(0, 4), fill=tk.X, ipady=5)
-
-        btn_row = tk.Frame(dlg, bg=C["bg"])
-        btn_row.pack(fill=tk.X, padx=20, pady=12)
-
-        def _create():
-            fname = name_var.get().strip()
-            if not fname:
-                messagebox.showerror("GitView", "Please enter a file name.", parent=dlg)
-                return
-            body    = content_txt.get("1.0", tk.END)
-            commit  = msg_var.get().strip() or "Create file via GitView"
-            content = base64.b64encode(body.encode()).decode()
-            branch  = self.branch_var.get()
-            prefix  = f"{self.current_path}/" if self.current_path else ""
-            api_path = f"{prefix}{fname}"
-            dlg.destroy()
-
-            self._set_status(f"Creating {fname}…")
-            self.progress_bar.start()
-
-            def _work():
-                try:
-                    r = self.session.put(
-                        f"{self.api_base}/repos/{self.username}/"
-                        f"{self.current_repo}/contents/{api_path}",
-                        json={"message": commit, "content": content, "branch": branch},
-                        timeout=20)
-                    self._parse_rate_limit(r)
-                    self.root.after(0, self.progress_bar.stop)
-                    if r.status_code == 201:
-                        self.root.after(0, lambda: self._set_status(
-                            f"Created {fname}", "ok"))
-                        self.root.after(0, lambda: self._load_dir(self.current_path))
-                        self.root.after(0, lambda: self._log_operation(
-                            f"Created file: {api_path}"))
-                    else:
-                        msg_e = r.json().get("message", "Failed")
-                        self.root.after(0, lambda: self._set_status(msg_e, "err"))
-                except Exception as e:
-                    self.root.after(0, self.progress_bar.stop)
-                    self.root.after(0, lambda: self._set_status(str(e), "err"))
-
-            threading.Thread(target=_work, daemon=True).start()
-
-        make_btn(btn_row, "✓  Create File", _create, style="accent", C=C,
-                 font=(FONT_UI, 10, "bold"), pady=7).pack(side=tk.LEFT, padx=(0, 8))
-        make_btn(btn_row, "Cancel", dlg.destroy, style="ghost", C=C,
-                 font=(FONT_UI, 10), pady=7).pack(side=tk.LEFT)
-
-    def _create_folder_dialog(self):
-        if not self._check_write_access():
-            return
-        if not self.current_repo:
-            return
-        name = simpledialog.askstring(
-            "GitView — New Folder",
-            "Folder name:\n(A placeholder .gitkeep file will be created inside it)",
+        fname = simpledialog.askstring(
+            "New File",
+            "Enter new file name (include extension):",
             parent=self.root)
-        if not name:
+        if not fname:
             return
-        name    = name.strip()
-        prefix  = f"{self.current_path}/" if self.current_path else ""
-        api_path = f"{prefix}{name}/.gitkeep"
-        content = base64.b64encode(b"").decode()
-        branch  = self.branch_var.get()
+        content_str = simpledialog.askstring(
+            "File Content",
+            f"Initial content for '{fname}' (can be empty):",
+            parent=self.root) or ""
+        commit_msg = simpledialog.askstring(
+            "Commit Message",
+            f"Commit message for creating '{fname}':",
+            initialvalue=f"Create {fname} via GitView",
+            parent=self.root)
+        if not commit_msg:
+            return
+        api_path = f"{self.current_path}/{fname}" if self.current_path else fname
+        branch   = self.branch_var.get()
+        payload  = {
+            "message": commit_msg,
+            "content": base64.b64encode(content_str.encode()).decode(),
+            "branch":  branch,
+        }
+        self._set_status(f"Creating {fname}…")
+        self.progress_bar.start()
 
         def _work():
             try:
                 r = self.session.put(
                     f"{self.api_base}/repos/{self.username}/"
                     f"{self.current_repo}/contents/{api_path}",
-                    json={"message": f"Create folder {name} via GitView",
-                          "content": content, "branch": branch},
-                    timeout=20)
+                    json=payload, timeout=20)
                 self._parse_rate_limit(r)
-                if r.status_code == 201:
+                self.root.after(0, self.progress_bar.stop)
+                if r.status_code in (200, 201):
                     self.root.after(0, lambda: self._set_status(
-                        f"Created folder: {name}", "ok"))
+                        f"Created {fname}", "ok"))
                     self.root.after(0, lambda: self._load_dir(self.current_path))
                     self.root.after(0, lambda: self._log_operation(
-                        f"Created folder: {prefix}{name}"))
+                        f"Created {fname}"))
                 else:
-                    msg = r.json().get("message", "Failed")
-                    self.root.after(0, lambda: self._set_status(msg, "err"))
+                    err = r.json().get("message", "Create failed")
+                    self.root.after(0, lambda: self._set_status(err, "err"))
             except Exception as e:
+                self.root.after(0, self.progress_bar.stop)
                 self.root.after(0, lambda: self._set_status(str(e), "err"))
 
         threading.Thread(target=_work, daemon=True).start()
 
-    def _rename_selected(self):
+    def _create_folder_dialog(self):
         if not self._check_write_access():
             return
-        sel = self.tree.selection()
-        if not sel:
+        if not self.current_repo:
+            messagebox.showwarning("GitView", "Please select a repository first.")
             return
-        old_name = self.tree.item(sel[0], "text").strip()
-        new_name = simpledialog.askstring(
-            "GitView — Rename",
-            f"New name for '{old_name}':",
-            initialvalue=old_name, parent=self.root)
-        if not new_name or new_name == old_name:
+        fname = simpledialog.askstring(
+            "New Folder",
+            "Enter folder name:\n(A .gitkeep file will be created inside it)",
+            parent=self.root)
+        if not fname:
             return
-        # GitHub doesn't support rename directly — download + upload + delete
-        messagebox.showinfo("GitView — Rename",
-                            "Rename: download the file, re-upload with new name,\n"
-                            "then delete the old one.\n\n"
-                            "This is how GitHub API works.\nUse the browser for complex renames.")
+        api_path = (f"{self.current_path}/{fname}/.gitkeep"
+                    if self.current_path else f"{fname}/.gitkeep")
+        branch  = self.branch_var.get()
+        payload = {
+            "message": f"Create folder {fname} via GitView",
+            "content": base64.b64encode(b"").decode(),
+            "branch":  branch,
+        }
+        def _work():
+            try:
+                r = self.session.put(
+                    f"{self.api_base}/repos/{self.username}/"
+                    f"{self.current_repo}/contents/{api_path}",
+                    json=payload, timeout=20)
+                self._parse_rate_limit(r)
+                if r.status_code in (200, 201):
+                    self.root.after(0, lambda: self._set_status(
+                        f"Created folder {fname}", "ok"))
+                    self.root.after(0, lambda: self._load_dir(self.current_path))
+                else:
+                    err = r.json().get("message", "Failed to create folder")
+                    self.root.after(0, lambda: self._set_status(err, "err"))
+            except Exception as e:
+                self.root.after(0, lambda: self._set_status(str(e), "err"))
+        threading.Thread(target=_work, daemon=True).start()
 
     def _delete_selected(self):
         if not self._check_write_access():
@@ -3387,180 +3683,179 @@ class GitView:
             return
         names = [self.tree.item(i, "text").strip() for i in sel]
         if not messagebox.askyesno(
-            "GitView — Confirm Delete",
-            f"Permanently delete {len(names)} item(s)?\n\n" +
-            "\n".join(f"  • {n}" for n in names[:8]) +
-            ("\n  …" if len(names) > 8 else "") +
-            "\n\nThis cannot be undone!"):
+                "Confirm Delete",
+                f"Delete {len(names)} item(s)?\n  " +
+                "\n  ".join(names[:5]) +
+                ("\n  …" if len(names) > 5 else "") +
+                "\n\nThis cannot be undone."):
             return
-
-        self.progress_bar.start()
-        self._set_status(f"Deleting {len(names)} item(s)…")
+        branch = self.branch_var.get()
 
         def _work():
-            done = 0
-            branch = self.branch_var.get()
             for iid in sel:
                 name = self.tree.item(iid, "text").strip()
-                vals = self.tree.item(iid, "values")
-                if vals[1] == "Folder":
-                    continue  # can't delete folders via API easily
-                api_path = f"{self.current_path}/{name}" if self.current_path else name
+                path = f"{self.current_path}/{name}" if self.current_path else name
                 try:
-                    r_info = self.session.get(
+                    r_get = self.session.get(
                         f"{self.api_base}/repos/{self.username}/"
-                        f"{self.current_repo}/contents/{api_path}",
+                        f"{self.current_repo}/contents/{path}",
                         params={"ref": branch}, timeout=10)
-                    if r_info.status_code != 200:
-                        continue
-                    sha = r_info.json().get("sha", "")
-                    r = self.session.delete(
-                        f"{self.api_base}/repos/{self.username}/"
-                        f"{self.current_repo}/contents/{api_path}",
-                        json={"message": f"Delete {name} via GitView",
-                              "sha": sha, "branch": branch},
-                        timeout=20)
-                    if r.status_code == 200:
-                        done += 1
-                        self._log_operation(f"Deleted: {api_path}")
+                    if r_get.status_code == 200:
+                        sha = r_get.json().get("sha", "")
+                        r_del = self.session.delete(
+                            f"{self.api_base}/repos/{self.username}/"
+                            f"{self.current_repo}/contents/{path}",
+                            json={"message": f"Delete {name} via GitView",
+                                  "sha": sha, "branch": branch},
+                            timeout=20)
+                        self._parse_rate_limit(r_del)
+                        if r_del.status_code in (200, 204):
+                            self.root.after(0, lambda n=name:
+                                            self._set_status(f"Deleted {n}", "ok"))
+                            self.root.after(0, lambda n=name:
+                                            self._log_operation(f"Deleted {n}"))
                 except Exception as e:
-                    self._log_operation(f"Delete error {name}: {e}")
-
-            self.root.after(0, self.progress_bar.stop)
-            self.root.after(0, lambda: self._set_status(f"Deleted {done} file(s)", "ok"))
+                    self.root.after(0, lambda err=e:
+                                    self._set_status(str(err), "err"))
             self.root.after(0, lambda: self._load_dir(self.current_path))
 
         threading.Thread(target=_work, daemon=True).start()
 
-    def _create_repo_dialog(self):
-        if not self._check_write_access():
-            return
-        C = self.C
-        dlg = tk.Toplevel(self.root)
-        dlg.title("GitView — Create New Repository")
-        dlg.geometry("460x320")
-        dlg.configure(bg=C["bg"])
-        dlg.grab_set()
+    def _rename_selected(self):
+        messagebox.showinfo(
+            "GitView — Rename",
+            "GitHub API does not support direct rename.\n\n"
+            "To rename:\n"
+            "  1. Download the file\n"
+            "  2. Delete the original\n"
+            "  3. Upload with the new name")
 
-        tk.Label(dlg, text="➕  Create New Repository",
-                 bg=C["bg"], fg=C["fg"],
-                 font=(FONT_UI, 13, "bold")).pack(padx=20, pady=(16, 8), anchor=tk.W)
-
-        def lbl(txt):
-            tk.Label(dlg, text=txt, bg=C["bg"], fg=C["fg_subtle"],
-                     font=(FONT_UI, 8, "bold")).pack(padx=20, anchor=tk.W, pady=(8, 2))
-
-        lbl("REPOSITORY NAME")
-        name_var = tk.StringVar()
-        tk.Entry(dlg, textvariable=name_var, relief=tk.FLAT,
-                 bg=C["entry_bg"], fg=C["fg"], insertbackground=C["fg"],
-                 font=(FONT_MONO, 11), highlightthickness=1,
-                 highlightbackground=C["border"]).pack(padx=20, fill=tk.X, ipady=6)
-
-        lbl("DESCRIPTION  (optional)")
-        desc_var = tk.StringVar()
-        tk.Entry(dlg, textvariable=desc_var, relief=tk.FLAT,
-                 bg=C["entry_bg"], fg=C["fg"], insertbackground=C["fg"],
-                 font=(FONT_UI, 10), highlightthickness=1,
-                 highlightbackground=C["border"]).pack(padx=20, fill=tk.X, ipady=5)
-
-        priv_var = tk.BooleanVar(value=False)
-        cb_row   = tk.Frame(dlg, bg=C["bg"])
-        cb_row.pack(padx=20, pady=(10, 0), anchor=tk.W)
-        tk.Checkbutton(cb_row, text="Private repository",
-                       variable=priv_var,
-                       bg=C["bg"], fg=C["fg"],
-                       selectcolor=C["surface2"],
-                       activebackground=C["bg"],
-                       font=(FONT_UI, 10)).pack(side=tk.LEFT)
-
-        btn_row = tk.Frame(dlg, bg=C["bg"])
-        btn_row.pack(fill=tk.X, padx=20, pady=14)
-
-        def _create():
-            rname = name_var.get().strip()
-            if not rname:
-                messagebox.showerror("GitView", "Repository name is required.", parent=dlg)
-                return
-            dlg.destroy()
-            self._set_status(f"Creating repository {rname}…")
-            self.progress_bar.start()
-
-            def _work():
-                try:
-                    r = self.session.post(
-                        f"{self.api_base}/user/repos",
-                        json={"name": rname,
-                              "description": desc_var.get().strip(),
-                              "private": priv_var.get(),
-                              "auto_init": True},
-                        timeout=20)
-                    self._parse_rate_limit(r)
-                    self.root.after(0, self.progress_bar.stop)
-                    if r.status_code == 201:
-                        self.root.after(0, lambda: self._set_status(
-                            f"Created repository: {rname}", "ok"))
-                        self.root.after(0, self._load_repos)
-                        self.root.after(0, lambda: self._log_operation(
-                            f"Created repo: {self.username}/{rname}"))
-                    else:
-                        msg = r.json().get("message", "Failed")
-                        self.root.after(0, lambda: self._set_status(msg, "err"))
-                except Exception as e:
-                    self.root.after(0, self.progress_bar.stop)
-                    self.root.after(0, lambda: self._set_status(str(e), "err"))
-
-            threading.Thread(target=_work, daemon=True).start()
-
-        make_btn(btn_row, "✓  Create", _create, style="accent", C=C,
-                 font=(FONT_UI, 10, "bold"), pady=7).pack(side=tk.LEFT, padx=(0, 8))
-        make_btn(btn_row, "Cancel", dlg.destroy, style="ghost", C=C,
-                 font=(FONT_UI, 10), pady=7).pack(side=tk.LEFT)
-
-    # ══════════════════════════════════════════════════════════════════
-    #   MISC ACTIONS
-    # ══════════════════════════════════════════════════════════════════
     def _copy_path(self):
         sel = self.tree.selection()
         if not sel:
             return
-        name     = self.tree.item(sel[0], "text").strip()
-        api_path = f"{self.current_path}/{name}" if self.current_path else name
+        name = self.tree.item(sel[0], "text").strip()
+        path = f"{self.current_path}/{name}" if self.current_path else name
         self.root.clipboard_clear()
-        self.root.clipboard_append(api_path)
-        self._set_status(f"Copied path: {api_path}", "ok")
+        self.root.clipboard_append(path)
+        self._set_status(f"Copied path: {path}", "ok")
 
     def _open_in_browser(self):
-        if not self.current_repo:
+        if not self.current_repo or not self.username:
             return
-        branch = self.branch_var.get()
-        path   = self.current_path or ""
-        url    = (f"https://github.com/{self.username}/{self.current_repo}"
-                  f"/tree/{branch}/{path}")
+        url = f"https://github.com/{self.username}/{self.current_repo}"
+        if self.current_path:
+            branch = self.branch_var.get()
+            url += f"/tree/{branch}/{self.current_path}"
         webbrowser.open(url)
-        self._set_status("Opened in browser", "ok")
 
     # ══════════════════════════════════════════════════════════════════
-    #   RATE LIMIT
+    #   CREATE REPO
+    # ══════════════════════════════════════════════════════════════════
+    def _create_repo_dialog(self):
+        if not self._check_write_access():
+            return
+        name = simpledialog.askstring(
+            "New Repository",
+            "Repository name (no spaces — use hyphens):",
+            parent=self.root)
+        if not name:
+            return
+        desc = simpledialog.askstring(
+            "Description (optional)",
+            "Short description of your repository:",
+            parent=self.root) or ""
+        is_private = messagebox.askyesno(
+            "Visibility",
+            "Make this repository private?\n\n"
+            "  Yes = private (only you can see)\n"
+            "  No  = public  (anyone can see)")
+        payload = {
+            "name":        name,
+            "description": desc,
+            "private":     is_private,
+            "auto_init":   True,
+        }
+
+        def _work():
+            try:
+                r = self.session.post(
+                    f"{self.api_base}/user/repos",
+                    json=payload, timeout=20)
+                self._parse_rate_limit(r)
+                if r.status_code == 201:
+                    self.root.after(0, lambda: self._set_status(
+                        f"Created repo: {name}", "ok"))
+                    self.root.after(0, self._load_repos)
+                    self.root.after(0, lambda: self._log_operation(
+                        f"Created repo: {name}"))
+                else:
+                    err = r.json().get("message", "Create failed")
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "Create Failed", err))
+            except Exception as e:
+                self.root.after(0, lambda: self._set_status(str(e), "err"))
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    # ══════════════════════════════════════════════════════════════════
+    #   CONFIG PERSISTENCE
+    # ══════════════════════════════════════════════════════════════════
+    def _save_config(self):
+        try:
+            cfg = {
+                "auth_mode":   self.auth_mode,
+                "username":    self.username or "",
+                "theme":       self.current_theme,
+                "pinned":      self.pinned_repos,
+                "history":     list(self._search_history),
+            }
+            with open(CONFIG_FILE, "w") as fh:
+                json.dump(cfg, fh, indent=2)
+        except Exception:
+            pass
+
+    def _load_saved_config(self):
+        try:
+            if not CONFIG_FILE.exists():
+                return
+            with open(CONFIG_FILE) as fh:
+                cfg = json.load(fh)
+            self.pinned_repos    = cfg.get("pinned", [])
+            history              = cfg.get("history", [])
+            self._search_history = deque(history, maxlen=30)
+            theme = cfg.get("theme", "dark")
+            if theme != self.current_theme:
+                self._toggle_theme()
+                return
+            mode = cfg.get("auth_mode", "token")
+            user = cfg.get("username", "")
+            if mode == "token":
+                self._switch_to_token()
+            elif mode == "public" and user:
+                self._switch_to_public()
+                self.public_var.set(user)
+        except Exception:
+            pass
+
+    # ══════════════════════════════════════════════════════════════════
+    #   RATE LIMIT PARSER
     # ══════════════════════════════════════════════════════════════════
     def _parse_rate_limit(self, r: requests.Response):
         try:
-            remaining = int(r.headers.get("X-RateLimit-Remaining", self.rate_remaining))
-            limit     = int(r.headers.get("X-RateLimit-Limit",     self.rate_limit))
-            reset_ts  = float(r.headers.get("X-RateLimit-Reset",   self.rate_reset_ts))
-            self.rate_remaining = remaining
-            self.rate_limit     = limit
-            self.rate_reset_ts  = reset_ts
+            self.rate_remaining = int(r.headers.get("X-RateLimit-Remaining", self.rate_remaining))
+            self.rate_limit     = int(r.headers.get("X-RateLimit-Limit",     self.rate_limit))
+            self.rate_reset_ts  = float(r.headers.get("X-RateLimit-Reset",   self.rate_reset_ts))
             self.root.after(0, self._update_rate_display)
         except Exception:
             pass
 
     def _update_rate_display(self):
         try:
-            rem   = self.rate_remaining
-            lim   = self.rate_limit
-            pct   = (rem / lim * 100) if lim else 100
-            C     = self.C
+            rem    = self.rate_remaining
+            lim    = self.rate_limit
+            pct    = (rem / lim * 100) if lim else 100
+            C      = self.C
             colour = (C["rate_ok"]   if pct > 40 else
                       C["rate_warn"] if pct > 15 else
                       C["rate_low"])
@@ -3605,27 +3900,27 @@ class GitView:
         colour = colours.get(level, self.C["fg_muted"])
         try:
             self.status_lbl.config(text=f"  {msg}", fg=colour)
-            self.progress_var.set(msg if level in ("ok", "err") else msg)
+            self.progress_var.set(msg if level in ("ok","err") else msg)
         except Exception:
             pass
 
     # ══════════════════════════════════════════════════════════════════
-    #   HELP
+    #   HELP WINDOW
     # ══════════════════════════════════════════════════════════════════
     def _show_help(self):
         C = self.C
         win = tk.Toplevel(self.root)
-        win.title("GitView v3 — Help & Quick Start")
-        win.geometry("720x640")
+        win.title("GitView v4 — Help & Quick Start")
+        win.geometry("760x680")
         win.configure(bg=C["bg"])
 
-        tk.Frame(win, bg=C["accent"], height=3).pack(fill=tk.X)
-        hdr = tk.Frame(win, bg=C["surface"], height=48)
+        tk.Frame(win, bg=C["accent"], height=2).pack(fill=tk.X)
+        hdr = tk.Frame(win, bg=C["surface"], height=46)
         hdr.pack(fill=tk.X)
         hdr.pack_propagate(False)
-        tk.Label(hdr, text="❓  GitView v3 — Help & Quick Start",
+        tk.Label(hdr, text="❓  GitView v4 — Help & Quick Start",
                  bg=C["surface"], fg=C["fg"],
-                 font=(FONT_UI, 12, "bold")).pack(side=tk.LEFT, padx=16, pady=12)
+                 font=(FONT_TITLE, 12, "bold")).pack(side=tk.LEFT, padx=16, pady=12)
 
         txt = tk.Text(win, wrap=tk.WORD, bg=C["surface"], fg=C["fg"],
                       font=(FONT_UI, 10), relief=tk.FLAT,
@@ -3638,75 +3933,71 @@ class GitView:
 
         HELP = f"""
 GitView v{APP_VERSION} — Quick Start Guide
-{'─'*64}
+{'─'*66}
 
-👋  GETTING STARTED (for everyone — no experience needed!)
-   GitView lets you browse, download, and manage GitHub repositories.
-   You have two ways to start:
+👋  GETTING STARTED
+   Two ways to connect:
 
-   ① 🔑  USE TOKEN  (full access — recommended)
-      • Go to: github.com → Settings → Developer settings
+   ① 🔑  TOKEN MODE  (full access, 5000 req/hr)
+      • github.com → Settings → Developer settings
         → Personal access tokens → Generate new token (Classic)
-      • Tick the 'repo' scope, click Generate, copy the token
-      • Paste it in the TOKEN field and click ⚡ Connect
-      • You'll have 5,000 API calls/hour
+      • Tick 'repo' scope, generate, copy, paste here → Connect
+      • Unlock: content search, file search, commit search, upload
 
-   ② 👤  BROWSE PUBLIC PROFILE  (no account needed!)
-      • Just type any GitHub username  (e.g.  torvalds)
-      • Or paste a GitHub URL  (e.g.  github.com/microsoft)
-      • Click 🚀 Browse  and explore their public repos
-      • You'll have 60 API calls/hour (unauthenticated limit)
+   ② 👤  BROWSE PUBLIC  (no account needed, 60 req/hr)
+      • Type any GitHub username (e.g. torvalds) → Browse
+      • All public repos instantly accessible
+      • Repo search and topics filter still work
 
 📁  EXPLORER TAB
-   • Pick a repository from the REPOSITORY dropdown
+   • Pick a repo from REPOSITORY dropdown
    • Pick a branch in BRANCH
-   • Double-click a 📁 folder to enter it
-   • Double-click a 📄 file to preview it with syntax highlighting
-   • ⌂ Home = root   ↑ Up = parent folder  [Home / Backspace]
-   • Type in the 🔍 filter box to instantly find files  [Ctrl+F]
-   • Click column headers to sort by Name / Type / Size
-   • Right-click any item for a context menu
+   • Double-click 📁 folder to enter it
+   • Double-click 📄 file to preview with syntax highlighting
+   • Type in 🔍 filter box to instantly find files  [Ctrl+F]
+   • Click column headers to sort  ·  right-click for context menu
+   • Home = root  ·  Backspace = go up
 
-🔍  SEARCH TAB  (NEW in v3 — SCOPED TO LOADED USER)
-   • Repos:   Search through the loaded user's repository names & descriptions
-   • Files:   Find files by name across all their repos  (needs token)
-   • Commits: Search commit messages by this user  (needs token)
-   • Topics:  Filter repos by programming language or topic
-   ➡ Results show only this user's content — not all of GitHub!
+🔍  SEARCH TAB  (NEW v4 — SCOPED TO LOADED USER)
+   ★ Ctrl+K anywhere to focus search
+
+   📦 REPOS    — Search repository names, descriptions, topics
+   📄 CONTENT  — ★ NEW: Find keywords INSIDE file contents
+                  Works best with Token mode
+                  Shows matched code fragments with highlighting
+   🗂 FILES    — Search file names across all repos  (needs token)
+   🕐 COMMITS  — Search commit messages  (needs token or local scan)
+   🏷 TOPICS   — Filter repos by programming language or topic tag
+
+   • Results appear as rich cards with context snippets
+   • Click any card to see full details in the side panel
+   • Pagination: 20 results per page, navigate with Prev/Next
+   • Sort by: Relevance, Name, or Date
+   • Press ↓ in the search box or click 🕐 History to see recent searches
 
 📥  DOWNLOADING
-   • Select files → Download Selected  [Ctrl+D]
-   • Right-click → Download
-   • Operations tab → Download Entire Repository (downloads .zip)
+   • Select files → right-click → Download
+   • Ctrl+D for selected files
+   • Operations tab → Download Entire Repo (opens GitHub .zip download)
 
-📤  UPLOADING & EDITING  (token mode only)
-   • Upload File  [Ctrl+U]  ·  Upload Folder  ·  New File  [Ctrl+N]
-   • Delete  [Del]  ·  Context menu → Rename
-
-📌  PINNING REPOS
-   • Select a repo, then click 📌 Pin Repo in the toolbar
-   • Pinned repos always appear at the top of the list
+📤  UPLOADING  (token mode only)
+   • Ctrl+U = upload file  ·  Ctrl+N = create new file
+   • Operations tab for folder upload
 
 ⌨️  KEYBOARD SHORTCUTS
-   Ctrl+F   Focus file filter        F5      Refresh repos
-   Ctrl+D   Download selection       F2      Rename
-   Ctrl+U   Upload file              Del     Delete selected
-   Ctrl+N   New file                 Space   Preview file
-   Home     Go to root               Backspace  Go up one level
+   Ctrl+K   Focus search box         F5      Refresh repos
+   Ctrl+F   Focus file filter        F2      Rename
+   Ctrl+D   Download selection       Del     Delete selected
+   Ctrl+U   Upload file              Space   Preview file
+   Ctrl+N   New file                 Home    Go to root
+                                     Backspace  Go up
 
-🎨  UI TIPS
+🎨  TIPS
    • 🌙/☀️  Theme button — toggle dark/light mode
-   • The API badge (top right) shows remaining API calls
-   • Yellow = getting low  ·  Red = very low  ·  Green = fine
+   • API badge (top right) shows remaining API calls
+   • Green ≥40% · Yellow 15-40% · Red <15%
 
-💡  TIPS FOR NON-TECH USERS
-   • You can explore anyone's public GitHub code — just type their username
-   • "Repository" means a project/folder of code
-   • "Branch" = version (usually 'main' or 'master' is the latest)
-   • Click file names to see their content — even code looks nice!
-   • Can't find a file? Use the 🔍 filter box — type to search instantly
-
-{'─'*64}
+{'─'*66}
 Author: {AUTHOR_NAME}  ·  {AUTHOR_FROM}
 LinkedIn: {AUTHOR_LI_URL}
 GitHub:   {GITHUB_URL}
@@ -3719,11 +4010,13 @@ GitHub:   {GITHUB_URL}
         bot.pack_propagate(False)
         make_btn(bot, "✕  Close", win.destroy, style="ghost", C=C
                  ).pack(side=tk.RIGHT, padx=12, pady=6)
-        make_btn(bot, "🔗  LinkedIn", lambda: webbrowser.open(AUTHOR_LI_URL),
+        make_btn(bot, "🔗  LinkedIn",
+                 lambda: webbrowser.open(AUTHOR_LI_URL),
                  style="accent", C=C).pack(side=tk.LEFT, padx=12, pady=6)
-        make_btn(bot, "⭐  Star on GitHub", lambda: webbrowser.open(GITHUB_URL),
+        make_btn(bot, "⭐  Star on GitHub",
+                 lambda: webbrowser.open(GITHUB_URL),
                  style="ghost", C=C).pack(side=tk.LEFT, padx=(0, 8), pady=6)
-        make_btn(bot, "🔑  Get Token Free",
+        make_btn(bot, "🔑  Get Token",
                  lambda: webbrowser.open("https://github.com/settings/tokens/new"),
                  style="ghost", C=C).pack(side=tk.LEFT, padx=(0, 8), pady=6)
 
@@ -3733,7 +4026,6 @@ GitHub:   {GITHUB_URL}
 # ══════════════════════════════════════════════════════════════════════════
 def main():
     root = tk.Tk()
-    # Set window icon (graceful fallback)
     try:
         root.iconbitmap(default="gitview.ico")
     except Exception:
@@ -3741,7 +4033,6 @@ def main():
 
     app = GitView(root)  # noqa: F841
 
-    # Centre on primary monitor
     root.update_idletasks()
     w = root.winfo_width()
     h = root.winfo_height()
